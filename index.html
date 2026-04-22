@@ -59,7 +59,7 @@
   .region-header.other-hdr .region-name-input{color:#0f172a;}
   .same-as-label{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10.5px;font-weight:700;color:#64748b;user-select:none;}
   .btn-remove{border:1px solid #fecaca;border-radius:4px;background:#fff5f5;padding:2px 8px;font-size:10.5px;color:#ef4444;}
-  .region-body{padding:12px 14px;}
+  .region-body{padding:12px 14px;max-height:620px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#cbd5e1 #f8fafc;}
   .heroes-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px;}
   .hero-slot{margin-bottom:10px;}
   .hero-label-row{display:flex;align-items:center;gap:4px;margin-bottom:3px;}
@@ -486,7 +486,11 @@ function parseLeUrl(raw) {
   const cm = url.match(/\/cruises\/([a-f0-9-]{36})/i);
   if (cm) return {type:'cruise', id:cm[1], label:`{CRUISE} ${cm[1]}`};
 
-  // PARTNER: /partner/property-slug/uuid  (e.g. Sheraton Gold Coast)
+  // SHORT OFFER: /offer/a/SALESFORCE_ID  — no slug, need to fetch title
+  const sm = url.match(/\/offer\/a\/([A-Za-z0-9]{10,20})/i);
+  if (sm) return {type:'hotel', id:sm[1], country:'??', label:`{??} ${sm[1]}`, needsFetch:true, fetchUrl:url};
+
+  // PARTNER: /partner/property-slug/uuid
   const pm = url.match(/\/partner\/([^/?#]+)\/([a-f0-9-]{36})/i);
   if (pm) {
     const cc = destCountryFromSlug(pm[1]);
@@ -497,13 +501,30 @@ function parseLeUrl(raw) {
   // HOTEL OFFER: /MARKET/offer/property-slug/SALESFORCE_ID
   const hm = url.match(/luxuryescapes\.com\/[a-z]{2}\/offer\/([^/?#]+)\/([A-Za-z0-9]+)/i);
   if (hm) {
-    // Country comes from the SLUG (destination), not the market in the URL
     const cc = destCountryFromSlug(hm[1]);
     const name = slugToName(hm[1]);
     return {type:'hotel', id:hm[2], country:cc, label:`{${cc}} ${name}`};
   }
 
   return null;
+}
+
+// Fetch page title for short /offer/a/ID URLs
+// Uses allorigins.win (free CORS proxy) to read the LE page <title>
+async function fetchOfferTitle(url) {
+  try {
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const resp = await fetch(proxyUrl, {signal: AbortSignal.timeout(7000)});
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const html = data.contents || '';
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    if (!titleMatch) return null;
+    // LE titles: "Property Name | Luxury Escapes" or "Property Name - Luxury Escapes"
+    return titleMatch[1].replace(/\s*[|\-].*$/, '').trim() || null;
+  } catch(e) {
+    return null;
+  }
 }
 
 function normL(l) { return (l||'').toLowerCase().replace(/[{}]/g,'').replace(/\s+/g,' ').trim(); }
@@ -864,17 +885,36 @@ function buildHeroSlot(region, hero, hi) {
   urlInput.placeholder='Paste LE URL or deal name…';
   urlInput.value=hero.url||'';
 
-  function commitHero(val) {
+  async function commitHero(val) {
     const v = val.trim();
     const parsed = parseLeUrl(v);
-    if (!parsed) { hero.url=v; hero.label=v; hero.id=''; hero.type='text'; }
-    else { Object.assign(hero, {url:v,...parsed}); }
-    // update pill
+    if (!parsed) {
+      hero.url=v; hero.label=v; hero.id=''; hero.type='text';
+    } else {
+      Object.assign(hero, {url:v, ...parsed});
+      // Short /offer/a/ID URL — show loading then fetch title from the page
+      if (parsed.needsFetch) {
+        hero.label = `⏳ Fetching name…`;
+        badge.innerHTML = freshBadgeHTML(hero.label);
+        renderPill();
+        const title = await fetchOfferTitle(parsed.fetchUrl);
+        if (title) {
+          const cc = destCountryFromSlug(title);
+          // cc will be AU if no destination keyword in title — that's fine, user can edit
+          hero.label = `{${cc !== 'AU' ? cc : '??'}} ${title}`;
+          hero.country = cc;
+        } else {
+          // Fallback: just show the ID with a note
+          hero.label = `{??} ${parsed.id}`;
+        }
+        badge.innerHTML = freshBadgeHTML(hero.label);
+        renderPill();
+      }
+    }
     badge.innerHTML=freshBadgeHTML(hero.label);
     renderPill();
     // update banner suggestions if hero 0
     if (hi===0) {
-      // re-render banner dropdown
       const bannerSec = slot.closest('.region-body')?.querySelector('.banner-section');
       if (bannerSec) {
         const newDd = buildBannerDropdown(region);
@@ -884,7 +924,7 @@ function buildHeroSlot(region, hero, hi) {
   }
 
   urlInput.addEventListener('blur',()=>commitHero(urlInput.value));
-  urlInput.addEventListener('keydown',e=>{ if(e.key==='Enter') commitHero(urlInput.value); });
+  urlInput.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); commitHero(urlInput.value); } });
   slot.appendChild(urlInput);
 
   const pill = document.createElement('div');
