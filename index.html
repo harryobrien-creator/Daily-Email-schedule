@@ -60,7 +60,7 @@
   .same-as-label{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10.5px;font-weight:700;color:#64748b;user-select:none;}
   .btn-remove{border:1px solid #fecaca;border-radius:4px;background:#fff5f5;padding:2px 8px;font-size:10.5px;color:#ef4444;}
   .region-body{padding:12px 14px;overflow:visible;}
-  .heroes-grid-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:6px;margin-bottom:4px;scrollbar-width:thin;scrollbar-color:#cbd5e1 #f8fafc;border-radius:6px;}.heroes-grid{display:grid;grid-template-columns:repeat(6,minmax(210px,1fr));gap:0 12px;min-width:1320px;}
+  .heroes-grid-wrap{overflow-x:auto;overflow-y:visible;padding-bottom:6px;margin-bottom:4px;scrollbar-width:thin;scrollbar-color:#cbd5e1 #f8fafc;border-radius:6px;}.heroes-grid{display:grid;grid-template-columns:repeat(3,minmax(200px,1fr));gap:0 12px;min-width:640px;}
   .hero-slot{margin-bottom:10px;}
   .hero-label-row{display:flex;align-items:center;gap:4px;margin-bottom:3px;}
   .hero-num{font-size:9.5px;font-weight:800;letter-spacing:.8px;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 5px;}
@@ -69,6 +69,12 @@
   .hero-pill{margin-top:3px;padding:3px 8px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11.5px;font-weight:600;font-family:'JetBrains Mono','Courier New',monospace;}
   .hero-pill .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
   .hero-pill .pill-id{font-size:10px;color:#94a3b8;background:#fff;border:1px solid #e2e8f0;border-radius:3px;padding:0 4px;}
+  .clock-row{display:flex;align-items:center;gap:5px;margin-top:4px;}
+  .clock-checkbox{width:13px;height:13px;accent-color:#ef4444;cursor:pointer;}
+  .clock-label{font-size:9.5px;font-weight:700;color:#94a3b8;cursor:pointer;user-select:none;}
+  .clock-label.active{color:#dc2626;}
+  .hero-slot.on-clock{border:2px solid #ef4444;border-radius:6px;padding:4px;background:#fff5f5;}
+  .clock-tag{font-size:9px;font-weight:800;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:1px 5px;border-radius:99px;margin-left:2px;}
 
   /* BANNER */
   .banner-section{margin-top:4px;margin-bottom:10px;}
@@ -1007,6 +1013,44 @@ function buildHeroSlot(region, hero, hi) {
   renderPill();
   slot.appendChild(pill);
 
+  // ── Clock checkbox — ticking highlights the hero in red
+  if (hero.onClock === undefined) hero.onClock = false;
+  const clockRow = document.createElement('div');
+  clockRow.className = 'clock-row';
+
+  const clockChk = document.createElement('input');
+  clockChk.type = 'checkbox';
+  clockChk.className = 'clock-checkbox';
+  clockChk.checked = !!hero.onClock;
+  clockChk.id = `clock-${hero.id || Math.random().toString(36).slice(2)}`;
+
+  const clockLbl = document.createElement('label');
+  clockLbl.htmlFor = clockChk.id;
+  clockLbl.className = 'clock-label' + (hero.onClock ? ' active' : '');
+  clockLbl.textContent = hero.onClock ? '🔴 On the CLOCK' : 'Clock?';
+
+  const clockTag = document.createElement('span');
+  clockTag.className = 'clock-tag';
+  clockTag.textContent = 'CLOCK';
+  clockTag.style.display = hero.onClock ? 'inline' : 'none';
+
+  function applyClockState(on) {
+    hero.onClock = on;
+    slot.className = 'hero-slot' + (on ? ' on-clock' : '');
+    clockLbl.className = 'clock-label' + (on ? ' active' : '');
+    clockLbl.textContent = on ? '🔴 On the CLOCK' : 'Clock?';
+    clockTag.style.display = on ? 'inline' : 'none';
+  }
+
+  applyClockState(!!hero.onClock);
+
+  clockChk.addEventListener('change', e => applyClockState(e.target.checked));
+
+  clockRow.appendChild(clockChk);
+  clockRow.appendChild(clockLbl);
+  clockRow.appendChild(clockTag);
+  slot.appendChild(clockRow);
+
   return slot;
 }
 
@@ -1101,6 +1145,8 @@ function buildBannerDropdown(region) {
     document.body.appendChild(panel);
     setTimeout(()=>searchInput.focus(),50);
   }
+
+  wrap.appendChild(trigger);  // ← was missing, causing blank banner section
 
   trigger.addEventListener('click',e=>{
     e.stopPropagation();
@@ -1600,6 +1646,395 @@ function showToast(msg, duration=3500) {
 // So the team can see examples of past schedules in History
 // ═══════════════════════════════════════════════════════════════════════════
 const SEED_HISTORY = [
+  // ── April 21 → April 1 sends (added per request)
+  {id:'seed-apr21',date:'2026-04-21',recordedAt:'2026-04-21T09:00:00.000Z',regions:[
+    {id:'a21-d',name:'Default',sameAsDefault:false,banner:'article-sofitel-nusadua-bestseller',notes:'',heroes:[
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'{MV} Pullman Maldives',id:'006RF00000PullMV1',type:'hotel'},
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{TH} Katathani Phuket',id:'006RF00000KataTH1',type:'hotel'},
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{FJ} Warwick Fiji',id:'006RF00000WrwkFij1',type:'hotel'}
+    ]},
+    {id:'a21-qld',name:'QLD Only',sameAsDefault:false,banner:'article-best-beachfront-qld',notes:'',heroes:[
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{QLD} Shangri-La The Marina Cairns',id:'006RF00000ShaCrns1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a21-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-sydney-48h',notes:'',heroes:[
+      {label:'{NSW} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{NSW} The Langham Sydney',id:'006RF00000LangSyd1',type:'hotel'},
+      {label:'{NSW} Amora Hotel Jamison Sydney',id:'006RF00000AmoraSyd1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a21-vic',name:'VIC Only',sameAsDefault:false,banner:'article-melbourne-best-hotels',notes:'',heroes:[
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{VIC} Lancemore Milawa VIC',id:'006RF00000LancMil1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a21-tours',name:'AU Tours',sameAsDefault:false,banner:'article-japan-must-see-spots',notes:'Japan focus',heroes:[
+      {label:'{TOUR} tour-a1b2c3d4-1234-5678-abcd-ef1234567890',id:'tour-a1b2c3d4-1234-5678-abcd-ef1234567890',type:'tour'},
+      {label:'{TOUR} tour-b2c3d4e5-2345-6789-bcde-f12345678901',id:'tour-b2c3d4e5-2345-6789-bcde-f12345678901',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr20',date:'2026-04-20',recordedAt:'2026-04-20T09:00:00.000Z',regions:[
+    {id:'a20-d',name:'Default',sameAsDefault:false,banner:'article-double-six-why-bestseller',notes:'',heroes:[
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'{QLD} Sea World Resort Gold Coast',id:'006RF00000SeaWldGC1',type:'hotel'},
+      {label:'{NSW} The Darling Sydney',id:'006RF00000DarlSyd1',type:'hotel'},
+      {label:'{FJ} InterContinental Fiji',id:'006RF00000IntFiji1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{MY} EQ Kuala Lumpur',id:'006RF00000EqKulLp1',type:'hotel'}
+    ]},
+    {id:'a20-qld',name:'QLD Only',sameAsDefault:false,banner:'article-gold-coast-sunsets',notes:'',heroes:[
+      {label:'{QLD} Sea World Resort Gold Coast',id:'006RF00000SeaWldGC1',type:'hotel'},
+      {label:'{QLD} The Star Residences Gold Coast',id:'006RF00000StarRGC1',type:'hotel'},
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr19',date:'2026-04-19',recordedAt:'2026-04-19T09:00:00.000Z',regions:[
+    {id:'a19-d',name:'Default',sameAsDefault:false,banner:'article-grand-hyatt-bali',notes:'',heroes:[
+      {label:'{ID} Grand Hyatt Bali',id:'006RF00000GrdHytB1',type:'hotel'},
+      {label:'{ID} AYANA Segara Bali',id:'006RF00000AyanaSeg1',type:'hotel'},
+      {label:'{QLD} Hamilton Island',id:'006RF00000HamiltonI1',type:'hotel'},
+      {label:'{NSW} Fairmont Resort Blue Mountains',id:'006RF00000FairmtBM1',type:'hotel'},
+      {label:'{VIC} RACV Cape Schanck',id:'006RF00000RacvCS1',type:'hotel'},
+      {label:'{MV} Finolhu Maldives',id:'006RF00000FinolhMV1',type:'hotel'}
+    ]},
+    {id:'a19-vic',name:'VIC Only',sameAsDefault:false,banner:'article-melbourne-48h',notes:'',heroes:[
+      {label:'{VIC} RACV Cape Schanck',id:'006RF00000RacvCS1',type:'hotel'},
+      {label:'{VIC} Next Hotel Melbourne',id:'006RF00000NextMel1',type:'hotel'},
+      {label:'{ID} Grand Hyatt Bali',id:'006RF00000GrdHytB1',type:'hotel'},
+      {label:'{QLD} Hamilton Island',id:'006RF00000HamiltonI1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a19-cruise',name:'Cruise',sameAsDefault:false,banner:'article-Maldives-charter',notes:'Sunday cruise',heroes:[
+      {label:'{CRUISE} 08afec6c-6b27-4cf9-945d-10c6716fa542',id:'08afec6c-6b27-4cf9-945d-10c6716fa542',type:'cruise'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr17',date:'2026-04-17',recordedAt:'2026-04-17T09:00:00.000Z',regions:[
+    {id:'a17-d',name:'Default',sameAsDefault:false,banner:'article-intercontinental-fiji-why-book',notes:'',heroes:[
+      {label:'{FJ} InterContinental Fiji',id:'006RF00000IntFiji1',type:'hotel'},
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'{QLD} Ardo Townsville',id:'006RF00000ArdoTwn1',type:'hotel'},
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{TH} Four Points Sheraton Phuket',id:'006RF00000FourPts1',type:'hotel'},
+      {label:'{NSW} Rumi on Louth',id:'006RF00000RumiNSW1',type:'hotel'}
+    ]},
+    {id:'a17-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-nsw-regional-escapes',notes:'',heroes:[
+      {label:'{NSW} Rumi on Louth',id:'006RF00000RumiNSW1',type:'hotel'},
+      {label:'{NSW} The Langham Sydney',id:'006RF00000LangSyd1',type:'hotel'},
+      {label:'{FJ} InterContinental Fiji',id:'006RF00000IntFiji1',type:'hotel'},
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a17-tours',name:'AU Tours',sameAsDefault:false,banner:'article-golden-eagle-trains',notes:'',heroes:[
+      {label:'{TOUR} tour-c3d4e5f6-3456-7890-cdef-123456789012',id:'tour-c3d4e5f6-3456-7890-cdef-123456789012',type:'tour'},
+      {label:'{TOUR} tour-d4e5f6a7-4567-8901-defa-234567890123',id:'tour-d4e5f6a7-4567-8901-defa-234567890123',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr16',date:'2026-04-16',recordedAt:'2026-04-16T09:00:00.000Z',regions:[
+    {id:'a16-d',name:'Default',sameAsDefault:false,banner:'article-apurva-kempinski-bali',notes:'',heroes:[
+      {label:'{ID} Apurva Kempinski Bali',id:'006RF00000AprvKmp1',type:'hotel'},
+      {label:'{QLD} The Star Grand Brisbane',id:'006RF00000StarBne1',type:'hotel'},
+      {label:'{NSW} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{FJ} Sofitel Fiji Resort',id:'006RF00000SoftFij1',type:'hotel'},
+      {label:'{MV} Coco Bodu Hithi Maldives',id:'006RF00000CocoBdh1',type:'hotel'},
+      {label:'{NT} Longitude 131 Uluru',id:'006RF00000Lng131U1',type:'hotel'}
+    ]},
+    {id:'a16-qld',name:'QLD Only',sameAsDefault:false,banner:'article-brisbane-coolest-capital',notes:'',heroes:[
+      {label:'{QLD} The Star Grand Brisbane',id:'006RF00000StarBne1',type:'hotel'},
+      {label:'{QLD} Shangri-La The Marina Cairns',id:'006RF00000ShaCrns1',type:'hotel'},
+      {label:'{ID} Apurva Kempinski Bali',id:'006RF00000AprvKmp1',type:'hotel'},
+      {label:'{FJ} Sofitel Fiji Resort',id:'006RF00000SoftFij1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr15',date:'2026-04-15',recordedAt:'2026-04-15T09:00:00.000Z',regions:[
+    {id:'a15-d',name:'Default',sameAsDefault:false,banner:'article-sofitel-fiji-resort-spa',notes:'',heroes:[
+      {label:'{FJ} Sofitel Fiji Resort',id:'006RF00000SoftFij1',type:'hotel'},
+      {label:'{ID} Kayumanis Ubud',id:'006RF00000KayaUbd1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{WA} Pullman Bunker Bay',id:'006RF00000PullBB1',type:'hotel'},
+      {label:'{TH} Katathani Phuket',id:'006RF00000KataTH1',type:'hotel'}
+    ]},
+    {id:'a15-vic',name:'VIC Only',sameAsDefault:false,banner:'article-melbourne-best-restaurants',notes:'',heroes:[
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{WA} Pullman Bunker Bay',id:'006RF00000PullBB1',type:'hotel'},
+      {label:'{FJ} Sofitel Fiji Resort',id:'006RF00000SoftFij1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a15-tours',name:'AU Tours',sameAsDefault:false,banner:'article-spain-italy-sig-series',notes:'',heroes:[
+      {label:'{TOUR} tour-e5f6a7b8-5678-9012-efab-345678901234',id:'tour-e5f6a7b8-5678-9012-efab-345678901234',type:'tour'},
+      {label:'{TOUR} tour-f6a7b8c9-6789-0123-fabc-456789012345',id:'tour-f6a7b8c9-6789-0123-fabc-456789012345',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr14',date:'2026-04-14',recordedAt:'2026-04-14T09:00:00.000Z',regions:[
+    {id:'a14-d',name:'Default',sameAsDefault:false,banner:'article-langham-gold-coast',notes:'',heroes:[
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'{NSW} Amora Hotel Jamison Sydney',id:'006RF00000AmoraSyd1',type:'hotel'},
+      {label:'{MV} Pullman Maldives',id:'006RF00000PullMV1',type:'hotel'},
+      {label:'{VIC} Lancemore Milawa VIC',id:'006RF00000LancMil1',type:'hotel'},
+      {label:'{FJ} Malolo Island Resort',id:'006RF00000MalolFJ1',type:'hotel'}
+    ]},
+    {id:'a14-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-best-city-hotels-sydney',notes:'',heroes:[
+      {label:'{NSW} Amora Hotel Jamison Sydney',id:'006RF00000AmoraSyd1',type:'hotel'},
+      {label:'{NSW} The Darling Sydney',id:'006RF00000DarlSyd1',type:'hotel'},
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr13',date:'2026-04-13',recordedAt:'2026-04-13T09:00:00.000Z',regions:[
+    {id:'a13-d',name:'Default',sameAsDefault:false,banner:'article-mulia-bali',notes:'',heroes:[
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'{ID} Merusaka Nusa Dua Bali',id:'006RF00000MerusBl1',type:'hotel'},
+      {label:'{QLD} Ardo Townsville',id:'006RF00000ArdoTwn1',type:'hotel'},
+      {label:'{VIC} Next Hotel Melbourne',id:'006RF00000NextMel1',type:'hotel'},
+      {label:'{FJ} Warwick Fiji',id:'006RF00000WrwkFij1',type:'hotel'},
+      {label:'{VN} Hoiana Resort Vietnam',id:'006RF00000HoianVN1',type:'hotel'}
+    ]},
+    {id:'a13-qld',name:'QLD Only',sameAsDefault:false,banner:'article-cairns-guide',notes:'',heroes:[
+      {label:'{QLD} Ardo Townsville',id:'006RF00000ArdoTwn1',type:'hotel'},
+      {label:'{QLD} Shangri-La The Marina Cairns',id:'006RF00000ShaCrns1',type:'hotel'},
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'{FJ} Warwick Fiji',id:'006RF00000WrwkFij1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a13-vic',name:'VIC Only',sameAsDefault:false,banner:'article-melbourne-winter',notes:'',heroes:[
+      {label:'{VIC} Next Hotel Melbourne',id:'006RF00000NextMel1',type:'hotel'},
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'{FJ} Warwick Fiji',id:'006RF00000WrwkFij1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr12',date:'2026-04-12',recordedAt:'2026-04-12T09:00:00.000Z',regions:[
+    {id:'a12-d',name:'Default',sameAsDefault:false,banner:'article-intercontinental-hayman',notes:'',heroes:[
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'{MV} Coco Bodu Hithi Maldives',id:'006RF00000CocoBdh1',type:'hotel'},
+      {label:'{NSW} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{TH} Barcelo Coconut Island',id:'006RF00000BarclTH1',type:'hotel'},
+      {label:'{NT} Sails in the Desert Uluru',id:'006RF00000SailsNT1',type:'hotel'}
+    ]},
+    {id:'a12-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-sydney-48h',notes:'',heroes:[
+      {label:'{NSW} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{NSW} The Langham Sydney',id:'006RF00000LangSyd1',type:'hotel'},
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a12-tours',name:'AU Tours',sameAsDefault:false,banner:'article-signature-series-hk-taiwan',notes:'HK tours push',heroes:[
+      {label:'{TOUR} tour-a1b2c3d4-1234-5678-abcd-ef1234567890',id:'tour-a1b2c3d4-1234-5678-abcd-ef1234567890',type:'tour'},
+      {label:'{TOUR} tour-b2c3d4e5-2345-6789-bcde-f12345678901',id:'tour-b2c3d4e5-2345-6789-bcde-f12345678901',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr10',date:'2026-04-10',recordedAt:'2026-04-10T09:00:00.000Z',regions:[
+    {id:'a10-d',name:'Default',sameAsDefault:false,banner:'article-double-six-why-bestseller',notes:'',heroes:[
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'{QLD} The Star Grand Brisbane',id:'006RF00000StarBne1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{FJ} Shangri-La Fiji',id:'006RF00000ShangrFJ1',type:'hotel'},
+      {label:'{NSW} The Darling Sydney',id:'006RF00000DarlSyd1',type:'hotel'},
+      {label:'{TH} Katathani Phuket',id:'006RF00000KataTH1',type:'hotel'}
+    ]},
+    {id:'a10-vic',name:'VIC Only',sameAsDefault:false,banner:'article-lancemore-milawa',notes:'',heroes:[
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{VIC} Lancemore Milawa VIC',id:'006RF00000LancMil1',type:'hotel'},
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'{FJ} Shangri-La Fiji',id:'006RF00000ShangrFJ1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a10-cruise',name:'Cruise',sameAsDefault:false,banner:'article-sofitel-fiji-resort-spa',notes:'Thursday cruise',heroes:[
+      {label:'{CRUISE} 1a2b3c4d-5e6f-7890-abcd-ef1234567890',id:'1a2b3c4d-5e6f-7890-abcd-ef1234567890',type:'cruise'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr09',date:'2026-04-09',recordedAt:'2026-04-09T09:00:00.000Z',regions:[
+    {id:'a09-d',name:'Default',sameAsDefault:false,banner:'article-grand-hyatt-bali',notes:'',heroes:[
+      {label:'{ID} Grand Hyatt Bali',id:'006RF00000GrdHytB1',type:'hotel'},
+      {label:'{QLD} Sea World Resort Gold Coast',id:'006RF00000SeaWldGC1',type:'hotel'},
+      {label:'{NSW} Fairmont Resort Blue Mountains',id:'006RF00000FairmtBM1',type:'hotel'},
+      {label:'{MV} Finolhu Maldives',id:'006RF00000FinolhMV1',type:'hotel'},
+      {label:'{VIC} RACV Cape Schanck',id:'006RF00000RacvCS1',type:'hotel'},
+      {label:'{MY} EQ Kuala Lumpur',id:'006RF00000EqKulLp1',type:'hotel'}
+    ]},
+    {id:'a09-qld',name:'QLD Only',sameAsDefault:false,banner:'article-gold-coast-sunsets',notes:'',heroes:[
+      {label:'{QLD} Sea World Resort Gold Coast',id:'006RF00000SeaWldGC1',type:'hotel'},
+      {label:'{QLD} The Star Residences Gold Coast',id:'006RF00000StarRGC1',type:'hotel'},
+      {label:'{ID} Grand Hyatt Bali',id:'006RF00000GrdHytB1',type:'hotel'},
+      {label:'{MV} Finolhu Maldives',id:'006RF00000FinolhMV1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a09-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-fairmont-blue-mountains',notes:'',heroes:[
+      {label:'{NSW} Fairmont Resort Blue Mountains',id:'006RF00000FairmtBM1',type:'hotel'},
+      {label:'{NSW} Rumi on Louth',id:'006RF00000RumiNSW1',type:'hotel'},
+      {label:'{ID} Grand Hyatt Bali',id:'006RF00000GrdHytB1',type:'hotel'},
+      {label:'{QLD} Sea World Resort Gold Coast',id:'006RF00000SeaWldGC1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr08',date:'2026-04-08',recordedAt:'2026-04-08T09:00:00.000Z',regions:[
+    {id:'a08-d',name:'Default',sameAsDefault:false,banner:'article-warwick-fiji-why-book',notes:'',heroes:[
+      {label:'{FJ} Warwick Fiji',id:'006RF00000WrwkFij1',type:'hotel'},
+      {label:'{ID} Apurva Kempinski Bali',id:'006RF00000AprvKmp1',type:'hotel'},
+      {label:'{QLD} Shangri-La The Marina Cairns',id:'006RF00000ShaCrns1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{NSW} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{NT} Longitude 131 Uluru',id:'006RF00000Lng131U1',type:'hotel'}
+    ]},
+    {id:'a08-vic',name:'VIC Only',sameAsDefault:false,banner:'article-melbourne-48h',notes:'',heroes:[
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{VIC} Next Hotel Melbourne',id:'006RF00000NextMel1',type:'hotel'},
+      {label:'{FJ} Warwick Fiji',id:'006RF00000WrwkFij1',type:'hotel'},
+      {label:'{ID} Apurva Kempinski Bali',id:'006RF00000AprvKmp1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a08-tours',name:'AU Tours',sameAsDefault:false,banner:'article-japan-must-see-spots',notes:'',heroes:[
+      {label:'{TOUR} tour-c3d4e5f6-3456-7890-cdef-123456789012',id:'tour-c3d4e5f6-3456-7890-cdef-123456789012',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr07',date:'2026-04-07',recordedAt:'2026-04-07T09:00:00.000Z',regions:[
+    {id:'a07-d',name:'Default',sameAsDefault:false,banner:'article-sofitel-nusadua-bestseller',notes:'',heroes:[
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{NSW} The Langham Sydney',id:'006RF00000LangSyd1',type:'hotel'},
+      {label:'{MV} Coco Bodu Hithi Maldives',id:'006RF00000CocoBdh1',type:'hotel'},
+      {label:'{TH} Four Points Sheraton Phuket',id:'006RF00000FourPts1',type:'hotel'},
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'}
+    ]},
+    {id:'a07-qld',name:'QLD Only',sameAsDefault:false,banner:'article-intercontinental-hayman',notes:'',heroes:[
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'{MV} Coco Bodu Hithi Maldives',id:'006RF00000CocoBdh1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a07-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-langham-sydney',notes:'',heroes:[
+      {label:'{NSW} The Langham Sydney',id:'006RF00000LangSyd1',type:'hotel'},
+      {label:'{NSW} Amora Hotel Jamison Sydney',id:'006RF00000AmoraSyd1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr06',date:'2026-04-06',recordedAt:'2026-04-06T09:00:00.000Z',regions:[
+    {id:'a06-d',name:'Default',sameAsDefault:false,banner:'article-mulia-bali',notes:'',heroes:[
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'{FJ} InterContinental Fiji',id:'006RF00000IntFiji1',type:'hotel'},
+      {label:'{QLD} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{VIC} Lancemore Milawa VIC',id:'006RF00000LancMil1',type:'hotel'},
+      {label:'{ID} Double Six Bali',id:'006RF00000Dbl6Bal1',type:'hotel'},
+      {label:'{WA} Margaret River',id:'006RF00000MargRv1',type:'hotel'}
+    ]},
+    {id:'a06-cruise',name:'Cruise',sameAsDefault:false,banner:'article-Maldives-charter',notes:'Monday cruise',heroes:[
+      {label:'{CRUISE} 08afec6c-6b27-4cf9-945d-10c6716fa542',id:'08afec6c-6b27-4cf9-945d-10c6716fa542',type:'cruise'},
+      {label:'{CRUISE} 1a2b3c4d-5e6f-7890-abcd-ef1234567890',id:'1a2b3c4d-5e6f-7890-abcd-ef1234567890',type:'cruise'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr05',date:'2026-04-05',recordedAt:'2026-04-05T09:00:00.000Z',regions:[
+    {id:'a05-d',name:'Default',sameAsDefault:false,banner:'article-ayana-resort-bali',notes:'',heroes:[
+      {label:'{ID} AYANA Segara Bali',id:'006RF00000AyanaSeg1',type:'hotel'},
+      {label:'{QLD} Hamilton Island',id:'006RF00000HamiltonI1',type:'hotel'},
+      {label:'{NSW} The Darling Sydney',id:'006RF00000DarlSyd1',type:'hotel'},
+      {label:'{MV} Pullman Maldives',id:'006RF00000PullMV1',type:'hotel'},
+      {label:'{TH} Katathani Phuket',id:'006RF00000KataTH1',type:'hotel'},
+      {label:'{FJ} Malolo Island Resort',id:'006RF00000MalolFJ1',type:'hotel'}
+    ]},
+    {id:'a05-vic',name:'VIC Only',sameAsDefault:false,banner:'article-racv-cape-schanck',notes:'',heroes:[
+      {label:'{VIC} RACV Cape Schanck',id:'006RF00000RacvCS1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{ID} AYANA Segara Bali',id:'006RF00000AyanaSeg1',type:'hotel'},
+      {label:'{QLD} Hamilton Island',id:'006RF00000HamiltonI1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a05-tours',name:'AU Tours',sameAsDefault:false,banner:'article-golden-eagle-trains',notes:'',heroes:[
+      {label:'{TOUR} tour-e5f6a7b8-5678-9012-efab-345678901234',id:'tour-e5f6a7b8-5678-9012-efab-345678901234',type:'tour'},
+      {label:'{TOUR} tour-f6a7b8c9-6789-0123-fabc-456789012345',id:'tour-f6a7b8c9-6789-0123-fabc-456789012345',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr04',date:'2026-04-04',recordedAt:'2026-04-04T09:00:00.000Z',regions:[
+    {id:'a04-d',name:'Default',sameAsDefault:false,banner:'article-movenpick-jimbaran',notes:'',heroes:[
+      {label:'{ID} Movenpick Jimbaran Bali',id:'006RF00000MovJmb1',type:'hotel'},
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{NSW} Rumi on Louth',id:'006RF00000RumiNSW1',type:'hotel'},
+      {label:'{FJ} Shangri-La Fiji',id:'006RF00000ShangrFJ1',type:'hotel'},
+      {label:'{VIC} Next Hotel Melbourne',id:'006RF00000NextMel1',type:'hotel'},
+      {label:'{NT} Sails in the Desert Uluru',id:'006RF00000SailsNT1',type:'hotel'}
+    ]},
+    {id:'a04-qld',name:'QLD Only',sameAsDefault:false,banner:'article-langham-gold-coast',notes:'',heroes:[
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'{QLD} Sea World Resort Gold Coast',id:'006RF00000SeaWldGC1',type:'hotel'},
+      {label:'{ID} Movenpick Jimbaran Bali',id:'006RF00000MovJmb1',type:'hotel'},
+      {label:'{FJ} Shangri-La Fiji',id:'006RF00000ShangrFJ1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a04-nsw',name:'NSW Only',sameAsDefault:false,banner:'article-nsw-regional-escapes',notes:'',heroes:[
+      {label:'{NSW} Rumi on Louth',id:'006RF00000RumiNSW1',type:'hotel'},
+      {label:'{NSW} The Langham Sydney',id:'006RF00000LangSyd1',type:'hotel'},
+      {label:'{ID} Movenpick Jimbaran Bali',id:'006RF00000MovJmb1',type:'hotel'},
+      {label:'{QLD} The Langham Gold Coast',id:'006RF00000LangGC1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr03',date:'2026-04-03',recordedAt:'2026-04-03T09:00:00.000Z',regions:[
+    {id:'a03-d',name:'Default',sameAsDefault:false,banner:'article-kayumanis-nusa-dua-villas',notes:'',heroes:[
+      {label:'{ID} Kayumanis Nusa Dua',id:'006RF00000KayaNus1',type:'hotel'},
+      {label:'{ID} Sofitel Bali Nusa Dua',id:'006RF00000SoftNus1',type:'hotel'},
+      {label:'{QLD} Ardo Townsville',id:'006RF00000ArdoTwn1',type:'hotel'},
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{MV} Coco Bodu Hithi Maldives',id:'006RF00000CocoBdh1',type:'hotel'},
+      {label:'{TH} Barcelo Coconut Island',id:'006RF00000BarclTH1',type:'hotel'}
+    ]},
+    {id:'a03-vic',name:'VIC Only',sameAsDefault:false,banner:'article-langham-melbourne',notes:'',heroes:[
+      {label:'{VIC} The Langham Melbourne',id:'006RF00000LangMel1',type:'hotel'},
+      {label:'{VIC} Crown Metropol Melbourne',id:'006RF00000CrwnMel1',type:'hotel'},
+      {label:'{ID} Kayumanis Nusa Dua',id:'006RF00000KayaNus1',type:'hotel'},
+      {label:'{QLD} Ardo Townsville',id:'006RF00000ArdoTwn1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
+  {id:'seed-apr02',date:'2026-04-02',recordedAt:'2026-04-02T09:00:00.000Z',regions:[
+    {id:'a02-d',name:'Default',sameAsDefault:false,banner:'article-intercontinental-fiji-why-book',notes:'',heroes:[
+      {label:'{FJ} InterContinental Fiji',id:'006RF00000IntFiji1',type:'hotel'},
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'{NSW} Star Grand Sydney',id:'006RF00000StarSyd1',type:'hotel'},
+      {label:'{QLD} The Star Grand Brisbane',id:'006RF00000StarBne1',type:'hotel'},
+      {label:'{TH} Katathani Phuket',id:'006RF00000KataTH1',type:'hotel'},
+      {label:'{WA} Pullman Bunker Bay',id:'006RF00000PullBB1',type:'hotel'}
+    ]},
+    {id:'a02-qld',name:'QLD Only',sameAsDefault:false,banner:'article-brisbane-coolest-capital',notes:'',heroes:[
+      {label:'{QLD} The Star Grand Brisbane',id:'006RF00000StarBne1',type:'hotel'},
+      {label:'{QLD} InterContinental Hayman Island',id:'006RF00000HaymanI1',type:'hotel'},
+      {label:'{FJ} InterContinental Fiji',id:'006RF00000IntFiji1',type:'hotel'},
+      {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]},
+    {id:'a02-tours',name:'AU Tours',sameAsDefault:false,banner:'article-spain-italy-sig-series',notes:'',heroes:[
+      {label:'{TOUR} tour-a1b2c3d4-1234-5678-abcd-ef1234567890',id:'tour-a1b2c3d4-1234-5678-abcd-ef1234567890',type:'tour'},
+      {label:'{TOUR} tour-c3d4e5f6-3456-7890-cdef-123456789012',id:'tour-c3d4e5f6-3456-7890-cdef-123456789012',type:'tour'},
+      {label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''},{label:'',id:'',type:''}
+    ]}
+  ]},
   {id:'seed-01',date:'2026-04-01',recordedAt:'2026-04-01T09:00:00.000Z',regions:[
     {id:'s01-d',name:'Default',sameAsDefault:false,banner:'article-mulia-bali',notes:'',heroes:[
       {label:'{ID} Mulia Bali',id:'006RF00000MuliaBali1',type:'hotel'},
