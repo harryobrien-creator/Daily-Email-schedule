@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LE Daily Email Scheduler — AU</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans','Helvetica Neue',sans-serif;background:#f1f5f9;min-height:100vh;color:#0f172a;}
+  input,textarea,select,button{font-family:inherit;}
+  button{cursor:pointer;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#f1f5f9;}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px;}
+
+  /* NAV */
+  #nav{position:sticky;top:0;z-index:500;background:#0f172a;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;box-shadow:0 2px 12px rgba(0,0,0,.4);}
+  .nav-logo{width:30px;height:30px;background:#f59e0b;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#0f172a;flex-shrink:0;}
+  .nav-title{font-size:13px;font-weight:800;color:#fff;line-height:1.2;}
+  .nav-sub{font-size:9.5px;color:#94a3b8;letter-spacing:.5px;}
+  .nav-tabs{display:flex;gap:2px;background:#1e293b;border-radius:8px;padding:3px;}
+  .nav-tab{padding:5px 16px;border-radius:7px;border:none;background:transparent;color:#94a3b8;font-weight:800;font-size:11.5px;letter-spacing:.4px;text-transform:uppercase;transition:all .15s;position:relative;}
+  .nav-tab.active{background:#6366f1;color:#fff;}
+  .nav-tab .badge{position:absolute;top:-5px;right:-4px;background:#f59e0b;color:#0f172a;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .btn-record{background:#22c55e;color:#fff;border:none;border-radius:7px;padding:5px 14px;font-weight:800;font-size:11.5px;letter-spacing:.3px;}
+  .btn-record:hover{background:#16a34a;}
+  #date-input{background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:6px;padding:4px 10px;font-size:12px;outline:none;}
+
+  /* LAYOUT */
+  #content{max-width:1180px;margin:0 auto;padding:18px 14px;}
+
+  /* TOOLBAR */
+  .toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .toolbar-label{font-size:10.5px;font-weight:800;color:#475569;letter-spacing:.5px;text-transform:uppercase;margin-right:2px;}
+  .preset-btn{padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;font-size:11.5px;font-weight:600;color:#475569;transition:all .12s;}
+  .preset-btn:hover{background:#eff6ff;border-color:#6366f1;}
+  .custom-region-input{padding:4px 9px;border:1px solid #e2e8f0;border-radius:6px;font-size:11.5px;outline:none;width:160px;}
+  .btn-add{padding:4px 10px;background:#0f172a;color:#fff;border:none;border-radius:6px;font-size:11.5px;font-weight:700;}
+  .btn-import{padding:4px 12px;border:1px solid #6366f1;border-radius:6px;background:#eff6ff;color:#4f46e5;font-size:11.5px;font-weight:700;}
+  .custom-banners-tag{font-size:10.5px;color:#6366f1;font-weight:700;background:#eff6ff;padding:2px 8px;border-radius:99px;}
+
+  /* FRESHNESS LEGEND */
+  .fresh-legend{display:flex;gap:8px;margin-bottom:12px;align-items:center;font-size:10.5px;color:#64748b;flex-wrap:wrap;}
+  .badge-green{background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:99px;font-weight:700;}
+  .badge-orange{background:#fef9c3;color:#a16207;padding:2px 8px;border-radius:99px;font-weight:700;}
+
+  /* REGION CARD */
+  .region-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05);transition:box-shadow .15s,opacity .15s;}
+  .region-card.dragging{opacity:.5;border-color:#6366f1;box-shadow:0 8px 32px rgba(99,102,241,.18);}
+  .region-card.drag-over{border-color:#6366f1;border-style:dashed;}
+  .region-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid #e2e8f0;}
+  .region-header.default-hdr{background:linear-gradient(135deg,#1e1b4b,#312e81);}
+  .region-header.other-hdr{background:#f8fafc;}
+  .drag-handle{cursor:grab;font-size:16px;color:#cbd5e1;line-height:1;user-select:none;margin-right:6px;}
+  .region-header.default-hdr .drag-handle{color:#a5b4fc;}
+  .region-name-input{background:transparent;border:none;outline:none;font-weight:800;font-size:13px;letter-spacing:.3px;font-family:inherit;}
+  .region-header.default-hdr .region-name-input{color:#e0e7ff;}
+  .region-header.other-hdr .region-name-input{color:#0f172a;}
+  .same-as-label{display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10.5px;font-weight:700;color:#64748b;user-select:none;}
+  .btn-remove{border:1px solid #fecaca;border-radius:4px;background:#fff5f5;padding:2px 8px;font-size:10.5px;color:#ef4444;}
+  .region-body{padding:12px 14px;}
+  .heroes-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px;}
+  .hero-slot{margin-bottom:10px;}
+  .hero-label-row{display:flex;align-items:center;gap:4px;margin-bottom:3px;}
+  .hero-num{font-size:9.5px;font-weight:800;letter-spacing:.8px;color:#475569;background:#f1f5f9;border-radius:3px;padding:1px 5px;}
+  .hero-url-input{width:100%;padding:6px 9px;font-size:11.5px;border:1.5px solid #e2e8f0;border-radius:6px;outline:none;font-family:'JetBrains Mono','Courier New',monospace;background:#f8fafc;color:#0f172a;transition:border .15s;}
+  .hero-url-input:focus{border-color:#6366f1;}
+  .hero-pill{margin-top:3px;padding:3px 8px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:11.5px;font-weight:600;font-family:'JetBrains Mono','Courier New',monospace;}
+  .hero-pill .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .hero-pill .pill-id{font-size:10px;color:#94a3b8;background:#fff;border:1px solid #e2e8f0;border-radius:3px;padding:0 4px;}
+
+  /* BANNER */
+  .banner-section{margin-top:4px;margin-bottom:10px;}
+  .section-label{font-size:10px;font-weight:800;color:#475569;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;}
+  .banner-trigger{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:6px;cursor:pointer;background:#f8fafc;min-height:34px;user-select:none;transition:border .15s;}
+  .banner-trigger.open{border-color:#6366f1;}
+  .banner-trigger-text{font-size:11.5px;font-family:'JetBrains Mono','Courier New',monospace;}
+  .banner-trigger-text.placeholder{color:#94a3b8;}
+  .dropdown-panel{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:999;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.14);overflow:hidden;}
+  .dropdown-search{width:100%;padding:5px 9px;border:1px solid #e2e8f0;border-radius:5px;font-size:12px;outline:none;box-sizing:border-box;}
+  .dropdown-list{max-height:240px;overflow-y:auto;}
+  .dropdown-item{padding:6px 12px;cursor:pointer;border-bottom:1px solid #f8fafc;transition:background .1s;}
+  .dropdown-item:hover{background:#f8fafc;}
+  .dropdown-item.selected{background:#f0f9ff;}
+  .dropdown-item-name{font-size:12px;font-weight:600;color:#0f172a;}
+  .dropdown-item-key{font-size:10px;color:#94a3b8;font-family:'JetBrains Mono','Courier New',monospace;}
+  .tag-match{margin-left:5px;font-size:9px;background:#e0e7ff;color:#4f46e5;padding:1px 4px;border-radius:3px;font-weight:800;}
+  .tag-custom{margin-left:5px;font-size:9px;background:#fef3c7;color:#b45309;padding:1px 4px;border-radius:3px;font-weight:800;}
+  .banner-clear-row{padding:6px 12px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;}
+  .banner-clear-row span{font-size:10px;color:#22c55e;font-weight:700;}
+  .banner-clear-btn{border:none;background:none;color:#ef4444;font-size:11px;}
+
+  /* NOTES */
+  .notes-input{width:100%;padding:5px 9px;font-size:11.5px;border:1px solid #e2e8f0;border-radius:5px;outline:none;color:#475569;background:#fafafa;font-style:italic;margin-bottom:6px;}
+
+  /* PUSH TOGGLE */
+  .push-toggle{width:100%;padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fafafa;color:#475569;font-size:11.5px;font-weight:600;text-align:left;display:flex;justify-content:space-between;align-items:center;}
+  .push-toggle.open{background:#f0f9ff;}
+
+  /* PUSH BLOCK */
+  .push-block{margin-top:8px;padding:10px 12px;border-radius:8px;}
+  .push-block.day{background:#fffbeb;border:1px solid #fde68a;}
+  .push-block.night{background:#f0f9ff;border:1px solid #bae6fd;}
+  .push-block-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .push-block-title{font-size:11px;font-weight:800;color:#1e293b;display:flex;align-items:center;gap:5px;}
+  .btn-copy-from{font-size:10.5px;font-weight:700;color:#6366f1;background:#eff6ff;border:1px solid #c7d2fe;border-radius:5px;padding:3px 9px;display:flex;align-items:center;gap:4px;}
+  .push-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .push-field{display:flex;flex-direction:column;gap:2px;}
+  .push-field.full{grid-column:1/-1;}
+  .push-field label{font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;}
+  .push-field input,.push-field textarea{width:100%;padding:5px 8px;font-size:11.5px;border:1px solid #e2e8f0;border-radius:5px;outline:none;background:#fff;font-family:inherit;}
+  .push-field textarea{resize:vertical;}
+  .push-field.mono input,.push-field.mono textarea{font-family:'JetBrains Mono','Courier New',monospace;}
+  .copy-from-panel{position:absolute;right:0;top:calc(100% + 4px);z-index:500;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.12);min-width:210px;overflow:hidden;}
+  .copy-from-header{padding:6px 12px;font-size:9.5px;font-weight:800;color:#64748b;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #f1f5f9;}
+  .copy-from-empty{padding:10px 12px;font-size:11.5px;color:#94a3b8;font-style:italic;}
+  .copy-from-item{padding:7px 12px;cursor:pointer;border-bottom:1px solid #f8fafc;transition:background .1s;}
+  .copy-from-item:hover{background:#f8fafc;}
+  .copy-from-item-name{font-size:12px;font-weight:700;color:#0f172a;}
+  .copy-from-item-preview{font-size:10.5px;color:#64748b;margin-top:1px;}
+
+  /* INHERITS ROW */
+  .inherits-row{padding:10px 14px;color:#94a3b8;font-size:12px;font-style:italic;}
+
+  /* CRM VIEW */
+  .crm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .crm-region{margin-bottom:20px;border-radius:10px;overflow:hidden;border:1.5px solid #e2e8f0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+  .crm-region-header{padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #e2e8f0;}
+  .crm-region-header.default-hdr{background:linear-gradient(135deg,#1e1b4b,#312e81);}
+  .crm-region-body{padding:12px 14px;}
+  .crm-sub-label{font-size:9.5px;font-weight:800;color:#64748b;letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;}
+  .hero-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+  .hero-chip{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:5px 10px;min-width:80px;}
+  .hero-chip-num{font-size:9px;font-weight:800;color:#94a3b8;margin-bottom:2px;}
+  .hero-chip-id{font-family:'JetBrains Mono','Courier New',monospace;font-size:13px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:3px;}
+  .hero-chip-type{font-size:9px;color:#94a3b8;text-transform:uppercase;margin-top:1px;}
+  .banner-row{margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+  .push-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .push-table th{padding:5px 10px;text-align:left;background:#f1f5f9;font-size:10px;font-weight:800;color:#64748b;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+  .push-table td{padding:5px 10px;color:#1e293b;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+  .push-table td.row-label{font-weight:700;font-size:11px;color:#64748b;white-space:nowrap;background:#f8fafc;width:90px;}
+  .copy-btn{border:none;cursor:pointer;background:transparent;padding:2px 4px;font-size:11px;color:#94a3b8;transition:color .15s;}
+  .copy-btn:hover{color:#6366f1;}
+  .copy-btn.copied{color:#22c55e;}
+
+  /* HISTORY VIEW */
+  .history-entry{margin-bottom:8px;border-radius:10px;overflow:hidden;border:1.5px solid #e2e8f0;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+  .history-row{padding:10px 16px;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;transition:background .12s;}
+  .history-row:hover{background:#f8fafc;}
+  .history-row.open{background:#f0f9ff;border-bottom:1px solid #e2e8f0;}
+  .date-pill{background:#1e1b4b;color:#e0e7ff;border-radius:8px;padding:4px 12px;text-align:center;min-width:56px;flex-shrink:0;}
+  .date-pill-day{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#a5b4fc;}
+  .date-pill-num{font-size:16px;font-weight:900;line-height:1.2;}
+  .date-pill-mon{font-size:9px;color:#a5b4fc;}
+  .deal-chip{font-size:10px;background:#f1f5f9;color:#475569;padding:1px 6px;border-radius:4px;font-weight:600;font-family:'JetBrains Mono','Courier New',monospace;}
+  .history-expanded{padding:14px 16px;}
+  .history-region{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;}
+  .history-region:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+  .region-tag{font-size:11px;font-weight:800;color:#fff;padding:2px 10px;border-radius:5px;}
+
+  /* EMPTY STATES */
+  .empty-state{text-align:center;padding:60px 0;color:#94a3b8;}
+  .empty-icon{font-size:44px;margin-bottom:12px;}
+  .empty-title{font-size:15px;font-weight:700;color:#64748b;margin-bottom:6px;}
+  .empty-desc{font-size:12px;line-height:1.6;}
+
+  /* FRESHNESS BADGES */
+  .fresh-badge{font-size:9px;font-weight:800;padding:1px 5px;border-radius:99px;margin-left:4px;}
+  .fresh-badge.none{background:#e2e8f0;color:#64748b;}
+  .fresh-badge.green{background:#dcfce7;color:#15803d;}
+  .fresh-badge.orange{background:#fef9c3;color:#a16207;}
+
+  /* MISC */
+  .relative{position:relative;}
+  .flex-center{display:flex;align-items:center;}
+  .gap-8{gap:8px;}
+  h2.page-title{font-size:18px;font-weight:900;color:#0f172a;margin:0;}
+  p.page-sub{margin:2px 0 0;font-size:12px;color:#64748b;}
+  .mono{font-family:'JetBrains Mono','Courier New',monospace;}
+  .search-input{padding:6px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none;width:240px;transition:border .15s;}
+  .search-input:focus{border-color:#6366f1;}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<div id="nav">
+  <div class="flex-center gap-8">
+    <div class="nav-logo">LE</div>
+    <div>
+      <div class="nav-title">Daily Email Scheduler</div>
+      <div class="nav-sub">AU · 6 HERO SLOTS</div>
+    </div>
+  </div>
+  <div class="flex-center gap-8">
+    <input type="date" id="date-input"/>
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-view="builder" onclick="switchView('builder')">🛠 Builder</button>
+      <button class="nav-tab" data-view="crm" onclick="switchView('crm')">📋 CRM</button>
+      <button class="nav-tab" data-view="history" onclick="switchView('history')">
+        🕒 History<span class="badge" id="history-badge" style="display:none">0</span>
+      </button>
+    </div>
+    <button class="btn-record" id="record-btn" onclick="recordSend()">✓ Record Send</button>
+  </div>
+</div>
+
+<div id="content">
+  <!-- BUILDER VIEW -->
+  <div id="view-builder">
+    <div class="toolbar">
+      <span class="toolbar-label">Add region:</span>
+      <button class="preset-btn" onclick="addRegion('Default')">+ Default</button>
+      <button class="preset-btn" onclick="addRegion('QLD Only')">+ QLD Only</button>
+      <button class="preset-btn" onclick="addRegion('NSW Only')">+ NSW Only</button>
+      <button class="preset-btn" onclick="addRegion('VIC Only')">+ VIC Only</button>
+      <button class="preset-btn" onclick="addRegion('AU Tours')">+ AU Tours</button>
+      <button class="preset-btn" onclick="addRegion('3x Weekly')">+ 3x Weekly</button>
+      <button class="preset-btn" onclick="addRegion('Cruise')">+ Cruise</button>
+      <input class="custom-region-input" id="custom-region-input" placeholder="Custom region name…" onkeydown="if(event.key==='Enter')addCustomRegion()"/>
+      <button class="btn-add" onclick="addCustomRegion()">Add</button>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+        <span class="custom-banners-tag" id="custom-banner-tag" style="display:none"></span>
+        <button class="btn-import" onclick="document.getElementById('banner-file').click()">📎 Import Banners</button>
+        <input type="file" id="banner-file" accept=".tsv,.txt,.csv" style="display:none" onchange="importBanners(this)"/>
+      </div>
+    </div>
+    <div class="fresh-legend">
+      <span style="font-weight:700">Freshness:</span>
+      <span class="badge-green">✓ Green = 7+ days since last send</span>
+      <span class="badge-orange">⚠ Orange = under 7 days</span>
+      <span>· No badge = not recorded yet this session</span>
+    </div>
+    <div id="regions-list"></div>
+  </div>
+
+  <!-- CRM VIEW -->
+  <div id="view-crm" style="display:none">
+    <div class="crm-header">
+      <div>
+        <h2 class="page-title">CRM Build View</h2>
+        <p class="page-sub" id="crm-date-label">No date selected — Copy IDs into Hero Planner</p>
+      </div>
+      <div style="font-size:10px;color:#94a3b8;text-align:right;line-height:1.6">Click ⧉ to copy any value<br/>Hero IDs → paste into Hero Planner</div>
+    </div>
+    <div id="crm-content"></div>
+  </div>
+
+  <!-- HISTORY VIEW -->
+  <div id="view-history" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <h2 class="page-title">Send History</h2>
+        <p class="page-sub" id="history-count">0 dates logged this session</p>
+      </div>
+      <input class="search-input" placeholder="Search dates, deals, regions…" oninput="renderHistory(this.value)"/>
+    </div>
+    <div id="history-content"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// BANNER DATA
+// ═══════════════════════════════════════════════════════════════════════════
+const BANNERS = [
+  {name:"Sea World Resort Gold Coast",key:"article-sea-world-experiences",tags:["qld","gold coast","sea world"]},
+  {name:"Fairmont Resort Blue Mountains",key:"article-fairmont-blue-mountains",tags:["nsw","blue mountains","fairmont"]},
+  {name:"Alohilani Resort Waikiki",key:"article-alohilani-resort-waikiki",tags:["hawaii","waikiki","us"]},
+  {name:"Amora Hotel Jamison Sydney",key:"article-amora-hotel-jamison-sydney",tags:["nsw","sydney","amora"]},
+  {name:"Apurva Kempinski Bali",key:"article-apurva-kempinski-bali",tags:["bali","indonesia","kempinski"]},
+  {name:"Ardo Townsville",key:"article-ardo-townsville",tags:["qld","townsville","ardo"]},
+  {name:"AYANA Segara Bali",key:"article-why-book-ayana-segara",tags:["bali","indonesia","ayana"]},
+  {name:"Barcelo Coconut Island Thailand",key:"article-barcelo-coconut-island",tags:["thailand","barcelo"]},
+  {name:"Coco Bodu Hithi Maldives",key:"article-coco-bodu-hithi",tags:["maldives","coco"]},
+  {name:"Crown Metropol Melbourne",key:"article-crown-metropol-melbourne",tags:["vic","melbourne","crown"]},
+  {name:"The Darling Sydney",key:"article-darling-sydney-why-book",tags:["nsw","sydney","darling"]},
+  {name:"Shangri-La Oman",key:"article-shangri-la-oman",tags:["oman","middle east","shangri-la"]},
+  {name:"Novotel Melbourne Central",key:"article-novotel-melbourne-central",tags:["vic","melbourne","novotel"]},
+  {name:"Double Six Bali",key:"article-double-six-why-bestseller",tags:["bali","indonesia","double six","seminyak"]},
+  {name:"EQ Kuala Lumpur",key:"article-eq-kuala-lumpur",tags:["malaysia","kuala lumpur","eq"]},
+  {name:"Finolhu Maldives",key:"article-finolhu-seaside-maldives",tags:["maldives","finolhu"]},
+  {name:"Four Points Sheraton Phuket",key:"article-four-points-sheraton-phuket",tags:["thailand","phuket","sheraton"]},
+  {name:"Grand Hyatt Bali",key:"article-grand-hyatt-bali",tags:["bali","indonesia","hyatt"]},
+  {name:"Hoiana Resort Vietnam",key:"article-why-book-hoiana-resort",tags:["vietnam","hoiana"]},
+  {name:"InterContinental Fiji",key:"article-intercontinental-fiji-why-book",tags:["fiji","intercontinental"]},
+  {name:"InterContinental Hayman Island",key:"article-intercontinental-hayman",tags:["qld","hayman","intercontinental"]},
+  {name:"Likuliku Lagoon Resort Fiji",key:"article-likuliku-lagoon-resort",tags:["fiji","likuliku"]},
+  {name:"Shangri-La The Marina Cairns",key:"article-shangri-la-cairns",tags:["qld","cairns","shangri-la"]},
+  {name:"Katathani Phuket",key:"article-katathani-phuket-beach-resort",tags:["thailand","phuket","katathani"]},
+  {name:"Kayumanis Nusa Dua",key:"article-kayumanis-nusa-dua-villas",tags:["bali","nusa dua","kayumanis"]},
+  {name:"Kayumanis Ubud",key:"article-kayumanis-ubud",tags:["bali","ubud","kayumanis"]},
+  {name:"Longitude 131 Uluru",key:"article-why-longitude-131",tags:["nt","uluru","longitude"]},
+  {name:"Malolo Island Resort Fiji",key:"article-malolo-island-resort-fiji",tags:["fiji","malolo"]},
+  {name:"Melia Ho Tram Vietnam",key:"article-melia-ho-tram-beach",tags:["vietnam","melia"]},
+  {name:"Merusaka Nusa Dua Bali",key:"article-why-book-merusaka",tags:["bali","nusa dua","merusaka"]},
+  {name:"Mandarin Oriental Singapore",key:"article-mandarin-oriental-singapore",tags:["singapore","mandarin oriental"]},
+  {name:"Movenpick Jimbaran Bali",key:"article-movenpick-jimbaran",tags:["bali","jimbaran","movenpick"]},
+  {name:"Mulia Bali",key:"article-mulia-bali",tags:["bali","mulia"]},
+  {name:"Next Hotel Melbourne",key:"article-next-hotel-melbourne",tags:["vic","melbourne","next"]},
+  {name:"Nusa Dua Beach Hotel & Spa",key:"article-nusa-dua-beach-hotel-spa",tags:["bali","nusa dua"]},
+  {name:"Panviman Koh Phangan",key:"article-panviman-koh-phangan",tags:["thailand","koh phangan"]},
+  {name:"Pullman Bunker Bay WA",key:"article-pullman-bunker-bay",tags:["wa","bunker bay","pullman"]},
+  {name:"Pullman Maldives Maamutaa",key:"article-pullman-maldives-maamutaa",tags:["maldives","pullman"]},
+  {name:"RACV Cape Schanck VIC",key:"article-racv-cape-schanck",tags:["vic","cape schanck","racv"]},
+  {name:"Rumi on Louth",key:"article-rumi-on-louth",tags:["nsw","rumi"]},
+  {name:"Sails in the Desert Uluru",key:"article-sails-in-the-desert",tags:["nt","uluru","sails"]},
+  {name:"Sofitel Bali Nusa Dua",key:"article-sofitel-nusadua-bestseller",tags:["bali","nusa dua","sofitel"]},
+  {name:"Sofitel Fiji Resort & Spa",key:"article-sofitel-fiji-resort-spa",tags:["fiji","sofitel"]},
+  {name:"Star Grand Sydney",key:"article-star-grand-sydney",tags:["nsw","sydney","star grand"]},
+  {name:"The Langham Gold Coast",key:"article-langham-gold-coast",tags:["qld","gold coast","langham"]},
+  {name:"The Langham Melbourne",key:"article-langham-melbourne",tags:["vic","melbourne","langham"]},
+  {name:"The Langham Sydney",key:"article-langham-sydney",tags:["nsw","sydney","langham"]},
+  {name:"The Star Grand Brisbane",key:"article-star-grand-brisbane",tags:["qld","brisbane","star"]},
+  {name:"The Star Residences Gold Coast",key:"article-star-residences-gold-coast",tags:["qld","gold coast","star"]},
+  {name:"Shangri-La Fiji",key:"article-shangri-la-fiji",tags:["fiji","shangri-la"]},
+  {name:"Lancemore Milawa VIC",key:"article-lancemore-milawa",tags:["vic","milawa","lancemore"]},
+  {name:"Trans Resort Bali",key:"article-trans-resort-bali",tags:["bali","trans resort"]},
+  {name:"Warwick Fiji",key:"article-warwick-fiji-why-book",tags:["fiji","warwick"]},
+  {name:"Ayodya Resort Bali",key:"article-why-book-ayodya-resort",tags:["bali","ayodya"]},
+  {name:"Maldives Direct Charter Flight",key:"article-Maldives-charter",tags:["maldives","charter","flight"]},
+  {name:"Sydney 48 Hours",key:"article-sydney-48h",tags:["nsw","sydney"]},
+  {name:"Best City Hotels Sydney",key:"article-best-city-hotels-sydney",tags:["nsw","sydney"]},
+  {name:"Best NSW Regional Escapes",key:"article-nsw-regional-escapes",tags:["nsw"]},
+  {name:"Hunter Valley Foodie Itinerary",key:"article-ultimate-hunter-valley",tags:["nsw","hunter valley"]},
+  {name:"Canberra Guide",key:"article-canberra-things-to-do",tags:["act","canberra"]},
+  {name:"Is Brisbane Australia's Coolest Capital?",key:"article-brisbane-coolest-capital",tags:["qld","brisbane"]},
+  {name:"Queensland's Best Beaches",key:"article-queenslands-best-beaches",tags:["qld"]},
+  {name:"Best Beachfront Resorts QLD",key:"article-best-beachfront-qld",tags:["qld"]},
+  {name:"Best Things to Do on the Gold Coast",key:"article-best-things-gold-coast",tags:["qld","gold coast"]},
+  {name:"Hamilton Island Guide",key:"article-hamilton-island",tags:["qld","hamilton island"]},
+  {name:"Cairns Guide",key:"article-cairns-guide",tags:["qld","cairns"]},
+  {name:"Port Douglas Guide",key:"article-port-douglas-guide",tags:["qld","port douglas"]},
+  {name:"Best QLD Hotels",key:"article-qld-best-hotels",tags:["qld"]},
+  {name:"Weekend in Hobart",key:"article-hobart-weekend-tasman",tags:["tas","hobart"]},
+  {name:"Best Restaurants Melbourne",key:"article-melbourne-best-restaurants",tags:["vic","melbourne"]},
+  {name:"Melbourne 48 Hours",key:"article-melbourne-48h",tags:["vic","melbourne"]},
+  {name:"Best Hotels in Melbourne",key:"article-melbourne-best-hotels",tags:["vic","melbourne"]},
+  {name:"Melbourne Winter Guide",key:"article-melbourne-winter",tags:["vic","melbourne"]},
+  {name:"Best Bars Melbourne",key:"article-best-bars-melbourne",tags:["vic","melbourne"]},
+  {name:"Margaret River Itinerary",key:"article-margaret-river-itinerary",tags:["wa","margaret river"]},
+  {name:"Best Things to Do in Perth",key:"article-things-to-do-perth",tags:["wa","perth"]},
+  {name:"WA Bucket List",key:"article-wa-bucket-list",tags:["wa"]},
+  {name:"Northern Territory Guide",key:"article-northern-territory-guide",tags:["nt"]},
+  {name:"Australia's Best 5-Star Hotels",key:"article-australia-best-5star",tags:["australia"]},
+  {name:"Australia's Best Long Weekend Escapes",key:"article-long-weekend-escapes",tags:["australia"]},
+  {name:"Australia's Most Romantic Hotels",key:"article-australia-romantic-hotels",tags:["australia"]},
+  {name:"Australia's Best Bucket List Stays",key:"article-australia-bucket-list",tags:["australia"]},
+  {name:"Australia's Best Golf Resorts",key:"article-australia-best-golf-resort",tags:["australia","golf"]},
+  {name:"Best Family-Friendly Hotels Australia",key:"article-best-family-friendly-australia",tags:["australia","family"]},
+  {name:"Best Things to Do in Winter Australia",key:"article-winter-australia-things",tags:["australia","winter"]},
+  {name:"Best Things to Do in Summer Australia",key:"article-best-things-summer-australia",tags:["australia","summer"]},
+  {name:"Off-Grid & Secluded Stays Australia",key:"article-australia-off-grid",tags:["australia"]},
+  {name:"Africa Safari Lodges",key:"article-africa-safari-lodges",tags:["africa","safari"]},
+  {name:"Africa Best National Parks",key:"article-africa-game-reserves",tags:["africa","safari"]},
+  {name:"What to Expect on an African Safari",key:"article-expect-africa-safari",tags:["africa","safari"]},
+  {name:"Signature Series: Hong Kong & Taiwan",key:"article-signature-series-hk-taiwan",tags:["hong kong","taiwan","tour","asia"]},
+  {name:"Italy & Spain Signature Series",key:"article-spain-italy-sig-series",tags:["italy","spain","europe","tour"]},
+  {name:"Golden Eagle Luxury Trains",key:"article-golden-eagle-trains",tags:["tour","train","europe"]},
+  {name:"Private Charter Europe",key:"article-private-charter-europe",tags:["europe","tour","charter"]},
+  {name:"Japan Must-See Spots",key:"article-japan-must-see-spots",tags:["japan","asia","tour"]},
+  {name:"Only in Australia 2026",key:"article-only-in-aus",tags:["australia"]},
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let regions = [];
+let customBanners = [];
+let sendHistory = [];
+let freshStore = {};
+let dragSrcIdx = null;
+let currentView = 'builder';
+let openDropdowns = new Set(); // track open banner dropdowns
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+const CC = {au:"AU",nz:"NZ",sg:"SG",us:"US",gb:"UK",hk:"HK",in:"IN",za:"SA",ae:"UAE",th:"TH",my:"MY",ph:"PH",id:"ID",jp:"JP",ca:"CA",fr:"FR",de:"DE",it:"IT",es:"ES",nl:"NL"};
+
+function parseLeUrl(raw) {
+  const url = (raw||'').trim();
+  if (!url.includes('luxuryescapes.com')) return null;
+  const tm = url.match(/\/tour\/(tour-[a-f0-9-]+)/i);
+  if (tm) return {type:'tour', id:tm[1], label:`{TOUR} ${tm[1]}`};
+  const cm = url.match(/\/cruises\/([a-f0-9-]{36})/i);
+  if (cm) return {type:'cruise', id:cm[1], label:`{CRUISE} ${cm[1]}`};
+  const hm = url.match(/luxuryescapes\.com\/([a-z]{2})\/offer\/([^/?#]+)\/([A-Za-z0-9]+)/i);
+  if (hm) {
+    const cc = CC[hm[1].toLowerCase()] || hm[1].toUpperCase();
+    const stopWords = ['victoria','australia','new','south','wales','western','northern','territory','queensland'];
+    const name = hm[2].split('-').filter(w=>!stopWords.includes(w.toLowerCase()))
+      .map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')
+      .replace(/\b(And|Or|The|In|At|Of|By|A)\b/g,m=>m.toLowerCase());
+    return {type:'hotel', id:hm[3], country:cc, label:`{${cc}} ${name}`};
+  }
+  return null;
+}
+
+function normL(l) { return (l||'').toLowerCase().replace(/[{}]/g,'').replace(/\s+/g,' ').trim(); }
+
+function recordFresh(label, dateStr) {
+  const k = normL(label); if (!k) return;
+  if (!freshStore[k]) freshStore[k] = [];
+  freshStore[k].push(dateStr || new Date().toISOString());
+}
+
+function daysSince(label) {
+  const k = normL(label); if (!k) return null;
+  const words = k.split(' ').filter(w=>w.length>3);
+  let best = null;
+  for (const [key,dates] of Object.entries(freshStore)) {
+    if (words.some(w=>key.includes(w)) && dates.length>0) {
+      const last = dates[dates.length-1];
+      if (!best || last>best) best = last;
+    }
+  }
+  if (!best) return null;
+  return Math.floor((Date.now() - new Date(best).getTime()) / 86400000);
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso+'T00:00:00').toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+
+function isoToday() { return new Date().toISOString().slice(0,10); }
+
+function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+
+function emptyHero() { return {url:'',label:'',id:'',type:''}; }
+function emptyPush() { return {brief:'',title:'',subtitle:'',message:'',link:'',imageCode:''}; }
+function emptyRegion(name='Default') {
+  return {id:uid(),name,heroes:Array(6).fill(null).map(emptyHero),banner:'',notes:'',daytime:emptyPush(),nighttime:emptyPush(),sameAsDefault:false};
+}
+
+function getAllBanners() { return [...BANNERS,...customBanners]; }
+
+function scoreBanners(hero1Label) {
+  const all = getAllBanners();
+  if (!hero1Label) return all;
+  const lower = normL(hero1Label);
+  return all.map(b=>({...b,score:b.tags.filter(t=>lower.includes(t)).length})).sort((a,b)=>b.score-a.score);
+}
+
+function getEffectiveRegion(region) {
+  if (region.sameAsDefault && regions.length > 0) return regions[0];
+  return region;
+}
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text||'').then(()=>{
+    if (btn) { btn.textContent='✓'; btn.classList.add('copied'); setTimeout(()=>{btn.textContent='⧉';btn.classList.remove('copied');},1400); }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════════════════════════════════════════
+function switchView(view) {
+  currentView = view;
+  ['builder','crm','history'].forEach(v=>{
+    document.getElementById(`view-${v}`).style.display = v===view?'block':'none';
+    document.querySelector(`[data-view="${v}"]`).classList.toggle('active', v===view);
+  });
+  document.getElementById('record-btn').style.display = view==='builder'?'':'none';
+  if (view==='crm') renderCRM();
+  if (view==='history') renderHistory('');
+  closeAllDropdowns();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGIONS MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
+function addRegion(name) {
+  regions.push(emptyRegion(name));
+  renderRegions();
+}
+function addCustomRegion() {
+  const inp = document.getElementById('custom-region-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  addRegion(name);
+  inp.value = '';
+}
+function removeRegion(id) {
+  regions = regions.filter(r=>r.id!==id);
+  renderRegions();
+}
+function updateRegionField(id, field, value) {
+  const r = regions.find(r=>r.id===id);
+  if (r) { r[field] = value; }
+}
+function updateHero(regionId, heroIdx, heroData) {
+  const r = regions.find(r=>r.id===regionId);
+  if (r) r.heroes[heroIdx] = heroData;
+}
+function updatePush(regionId, slot, pushData) {
+  const r = regions.find(r=>r.id===regionId);
+  if (r) r[slot] = pushData;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════════════════════════
+function onDragStart(e, idx) {
+  dragSrcIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.region-card').forEach(c=>c.classList.remove('drag-over'));
+  dragSrcIdx = null;
+}
+function onDragOver(e, idx) {
+  e.preventDefault();
+  if (dragSrcIdx===null || dragSrcIdx===idx) return;
+  document.querySelectorAll('.region-card').forEach(c=>c.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e, idx) {
+  e.preventDefault();
+  if (dragSrcIdx===null || dragSrcIdx===idx) return;
+  const moved = regions.splice(dragSrcIdx,1)[0];
+  regions.splice(idx,0,moved);
+  dragSrcIdx = null;
+  renderRegions();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BANNER IMPORT
+// ═══════════════════════════════════════════════════════════════════════════
+function importBanners(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(Boolean);
+    const parsed = lines.slice(1).map(l=>{
+      const [name,key,tagStr]=l.split('\t');
+      if (!name?.trim()||!key?.trim()) return null;
+      return {name:name.trim(),key:key.trim(),tags:(tagStr||'').split(',').map(t=>t.trim().toLowerCase()).filter(Boolean),custom:true};
+    }).filter(Boolean);
+    const ex = new Set(customBanners.map(b=>b.key));
+    customBanners.push(...parsed.filter(b=>!ex.has(b.key)));
+    const tag = document.getElementById('custom-banner-tag');
+    tag.style.display='';
+    tag.textContent = `${customBanners.length} custom banner${customBanners.length!==1?'s':''} loaded`;
+    alert(`✓ Imported ${parsed.length} custom banner${parsed.length!==1?'s':''}`);
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RECORD SEND
+// ═══════════════════════════════════════════════════════════════════════════
+function recordSend() {
+  const date = document.getElementById('date-input').value || isoToday();
+  const snapshot = {
+    id: uid(), date, recordedAt: new Date().toISOString(),
+    regions: regions.map(r=>({id:r.id,name:r.name,sameAsDefault:r.sameAsDefault,
+      heroes:r.heroes.filter(h=>h.label),banner:r.banner,notes:r.notes}))
+  };
+  sendHistory = [...sendHistory.filter(e=>e.date!==date), snapshot].sort((a,b)=>b.date.localeCompare(a.date));
+  regions.forEach(r=>{
+    const eff = getEffectiveRegion(r);
+    eff.heroes.forEach(h=>{ if(h.label) recordFresh(h.label, date); });
+  });
+  // Update badge
+  const badge = document.getElementById('history-badge');
+  badge.style.display='flex';
+  badge.textContent = sendHistory.length;
+  document.getElementById('history-count').textContent = `${sendHistory.length} date${sendHistory.length!==1?'s':''} logged this session`;
+  alert(`✓ Send recorded for ${fmtDate(date)}`);
+  switchView('history');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLOSE ALL DROPDOWNS
+// ═══════════════════════════════════════════════════════════════════════════
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown-panel,.copy-from-panel').forEach(el=>el.remove());
+  openDropdowns.clear();
+}
+document.addEventListener('click', e=>{
+  if (!e.target.closest('.relative')) closeAllDropdowns();
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FRESH BADGE HTML
+// ═══════════════════════════════════════════════════════════════════════════
+function freshBadgeHTML(label) {
+  if (!label) return '';
+  const d = daysSince(label);
+  if (d===null) return `<span class="fresh-badge none">no history</span>`;
+  if (d>=7) return `<span class="fresh-badge green">✓ ${d}d ago</span>`;
+  return `<span class="fresh-badge orange">⚠ ${d}d ago</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER REGIONS (Builder)
+// ═══════════════════════════════════════════════════════════════════════════
+function renderRegions() {
+  const list = document.getElementById('regions-list');
+  list.innerHTML = '';
+  if (regions.length===0) {
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No regions yet</div><div class="empty-desc">Use the buttons above to add regions</div></div>`;
+    return;
+  }
+  regions.forEach((region, idx) => {
+    const card = buildRegionCard(region, idx);
+    list.appendChild(card);
+  });
+}
+
+function buildRegionCard(region, idx) {
+  const isDefault = idx===0;
+  const div = document.createElement('div');
+  div.className = 'region-card';
+  div.setAttribute('draggable','true');
+  div.addEventListener('dragstart', e=>onDragStart(e,idx));
+  div.addEventListener('dragend', e=>onDragEnd(e));
+  div.addEventListener('dragover', e=>onDragOver(e,idx));
+  div.addEventListener('drop', e=>onDrop(e,idx));
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = `region-header ${isDefault?'default-hdr':'other-hdr'}`;
+
+  const hdrLeft = document.createElement('div');
+  hdrLeft.style.cssText='display:flex;align-items:center;gap:6px;';
+  const handle = document.createElement('span');
+  handle.className='drag-handle';
+  handle.title='Drag to reorder';
+  handle.textContent='⠿';
+  const nameInput = document.createElement('input');
+  nameInput.className='region-name-input';
+  nameInput.value=region.name;
+  nameInput.addEventListener('input', e=>{ region.name=e.target.value; });
+  hdrLeft.appendChild(handle);
+  hdrLeft.appendChild(nameInput);
+
+  const hdrRight = document.createElement('div');
+  hdrRight.style.cssText='display:flex;gap:6px;align-items:center;';
+
+  if (!isDefault) {
+    const sameLabel = document.createElement('label');
+    sameLabel.className='same-as-label';
+    const sameChk = document.createElement('input');
+    sameChk.type='checkbox';
+    sameChk.checked=!!region.sameAsDefault;
+    sameChk.addEventListener('change', e=>{
+      region.sameAsDefault = e.target.checked;
+      renderRegions();
+    });
+    sameLabel.appendChild(sameChk);
+    sameLabel.appendChild(document.createTextNode(' Same as Default'));
+    hdrRight.appendChild(sameLabel);
+
+    const rmBtn = document.createElement('button');
+    rmBtn.className='btn-remove';
+    rmBtn.textContent='✕';
+    rmBtn.addEventListener('click',()=>removeRegion(region.id));
+    hdrRight.appendChild(rmBtn);
+  }
+
+  hdr.appendChild(hdrLeft);
+  hdr.appendChild(hdrRight);
+  div.appendChild(hdr);
+
+  if (region.sameAsDefault) {
+    const inh = document.createElement('div');
+    inh.className='inherits-row';
+    inh.textContent='↳ Inherits all heroes, banner & pushes from Default';
+    div.appendChild(inh);
+  } else {
+    const body = document.createElement('div');
+    body.className='region-body';
+
+    // Heroes grid
+    const grid = document.createElement('div');
+    grid.className='heroes-grid';
+    region.heroes.forEach((hero, hi)=>{
+      grid.appendChild(buildHeroSlot(region, hero, hi));
+    });
+    body.appendChild(grid);
+
+    // Banner
+    const bannerSec = document.createElement('div');
+    bannerSec.className='banner-section';
+    const bannerLabel = document.createElement('div');
+    bannerLabel.className='section-label';
+    bannerLabel.textContent='Banner';
+    bannerSec.appendChild(bannerLabel);
+    bannerSec.appendChild(buildBannerDropdown(region));
+    body.appendChild(bannerSec);
+
+    // Notes
+    const notesInput = document.createElement('input');
+    notesInput.className='notes-input';
+    notesInput.placeholder='Notes (optional)…';
+    notesInput.value=region.notes||'';
+    notesInput.addEventListener('input',e=>region.notes=e.target.value);
+    body.appendChild(notesInput);
+
+    // Push toggle
+    const pushToggle = document.createElement('button');
+    pushToggle.className='push-toggle';
+    pushToggle.innerHTML='<span>☀️ 🌙 Push Notifications</span><span style="color:#94a3b8">▼</span>';
+    let pushOpen = false;
+    const pushContainer = document.createElement('div');
+
+    function togglePush() {
+      pushOpen=!pushOpen;
+      pushToggle.className=`push-toggle${pushOpen?' open':''}`;
+      pushToggle.innerHTML=`<span>☀️ 🌙 Push Notifications</span><span style="color:#94a3b8">${pushOpen?'▲':'▼'}</span>`;
+      pushContainer.innerHTML='';
+      if (pushOpen) {
+        pushContainer.appendChild(buildPushBlock(region,'daytime','☀️','Daytime Push','day'));
+        pushContainer.appendChild(buildPushBlock(region,'nighttime','🌙','Nighttime Push','night'));
+      }
+    }
+    pushToggle.addEventListener('click',togglePush);
+    body.appendChild(pushToggle);
+    body.appendChild(pushContainer);
+    div.appendChild(body);
+  }
+
+  return div;
+}
+
+function buildHeroSlot(region, hero, hi) {
+  const slot = document.createElement('div');
+  slot.className='hero-slot';
+
+  const labelRow = document.createElement('div');
+  labelRow.className='hero-label-row';
+  const numSpan = document.createElement('span');
+  numSpan.className='hero-num';
+  numSpan.textContent=`H${hi+1}`;
+  labelRow.appendChild(numSpan);
+  const badge = document.createElement('span');
+  badge.innerHTML=freshBadgeHTML(hero.label);
+  labelRow.appendChild(badge);
+  slot.appendChild(labelRow);
+
+  const urlInput = document.createElement('input');
+  urlInput.className='hero-url-input';
+  urlInput.placeholder='Paste LE URL or deal name…';
+  urlInput.value=hero.url||'';
+
+  function commitHero(val) {
+    const v = val.trim();
+    const parsed = parseLeUrl(v);
+    if (!parsed) { hero.url=v; hero.label=v; hero.id=''; hero.type='text'; }
+    else { Object.assign(hero, {url:v,...parsed}); }
+    // update pill
+    badge.innerHTML=freshBadgeHTML(hero.label);
+    renderPill();
+    // update banner suggestions if hero 0
+    if (hi===0) {
+      // re-render banner dropdown
+      const bannerSec = slot.closest('.region-body')?.querySelector('.banner-section');
+      if (bannerSec) {
+        const newDd = buildBannerDropdown(region);
+        bannerSec.replaceChild(newDd, bannerSec.children[1]);
+      }
+    }
+  }
+
+  urlInput.addEventListener('blur',()=>commitHero(urlInput.value));
+  urlInput.addEventListener('keydown',e=>{ if(e.key==='Enter') commitHero(urlInput.value); });
+  slot.appendChild(urlInput);
+
+  const pill = document.createElement('div');
+  const dotColors={hotel:'#3b82f6',tour:'#f59e0b',cruise:'#22c55e',text:'#94a3b8'};
+  const bgColors={hotel:'#eff6ff',tour:'#fef3c7',cruise:'#ecfdf5',text:'#f8fafc'};
+
+  function renderPill() {
+    if (!hero.label) { pill.style.display='none'; return; }
+    pill.style.display='flex';
+    pill.className='hero-pill';
+    pill.style.background=bgColors[hero.type]||'#f8fafc';
+    pill.style.border=`1px solid ${dotColors[hero.type]||'#e2e8f0'}33`;
+    pill.innerHTML=`
+      <div style="display:flex;align-items:center;gap:5px;overflow:hidden;">
+        <span class="dot" style="background:${dotColors[hero.type]||'#94a3b8'}"></span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escH(hero.label)}</span>
+      </div>
+      ${hero.id&&hero.id!==hero.label?`<span class="pill-id">${escH(hero.id)}</span>`:''}
+    `;
+  }
+  pill.style.display='none';
+  renderPill();
+  slot.appendChild(pill);
+
+  return slot;
+}
+
+function buildBannerDropdown(region) {
+  const wrap = document.createElement('div');
+  wrap.className='relative';
+
+  const trigger = document.createElement('div');
+  trigger.className=`banner-trigger${region.banner?' ':''}`;
+  const allB = getAllBanners();
+  const sel = allB.find(b=>b.key===region.banner);
+
+  function updateTrigger() {
+    const s = getAllBanners().find(b=>b.key===region.banner);
+    trigger.innerHTML=`<span class="banner-trigger-text${s?'':' placeholder'}">${s?escH(s.key):'Select banner…'}</span><span style="font-size:10px;color:#94a3b8">▾</span>`;
+  }
+  updateTrigger();
+
+  let panel = null;
+
+  function openDropdown() {
+    closeAllDropdowns();
+    const hero1Label = region.heroes[0]?.label||'';
+    panel = document.createElement('div');
+    panel.className='dropdown-panel';
+
+    const searchWrap = document.createElement('div');
+    searchWrap.style.cssText='padding:8px 8px 4px;';
+    const searchInput = document.createElement('input');
+    searchInput.className='dropdown-search';
+    searchInput.placeholder='Search banners…';
+    searchInput.autofocus=true;
+    searchWrap.appendChild(searchInput);
+    panel.appendChild(searchWrap);
+
+    if (hero1Label) {
+      const suggested = document.createElement('div');
+      suggested.style.cssText='padding:3px 12px 2px;font-size:9px;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:1px;';
+      suggested.textContent=`✦ Suggested for ${hero1Label.replace(/[{}]/g,'').slice(0,25)}`;
+      panel.appendChild(suggested);
+    }
+
+    const listDiv = document.createElement('div');
+    listDiv.className='dropdown-list';
+
+    function renderList(q) {
+      const all = getAllBanners();
+      let list = q ? all.filter(b=>b.name.toLowerCase().includes(q.toLowerCase())||b.key.includes(q.toLowerCase())) : scoreBanners(hero1Label);
+      listDiv.innerHTML='';
+      if (list.length===0) {
+        listDiv.innerHTML='<div style="padding:12px;text-align:center;color:#94a3b8;font-size:12px;">No banners found</div>';
+        return;
+      }
+      list.slice(0,30).forEach(b=>{
+        const item = document.createElement('div');
+        item.className=`dropdown-item${b.key===region.banner?' selected':''}`;
+        item.innerHTML=`<div class="dropdown-item-name">${escH(b.name)}${b.score>0?'<span class="tag-match">match</span>':''}${b.custom?'<span class="tag-custom">custom</span>':''}</div><div class="dropdown-item-key">${escH(b.key)}</div>`;
+        item.addEventListener('click',()=>{
+          region.banner=b.key;
+          updateTrigger();
+          panel.remove();
+          panel=null;
+        });
+        listDiv.appendChild(item);
+      });
+    }
+    renderList('');
+    searchInput.addEventListener('input',()=>renderList(searchInput.value));
+    panel.appendChild(listDiv);
+
+    if (region.banner) {
+      const clearRow = document.createElement('div');
+      clearRow.className='banner-clear-row';
+      clearRow.innerHTML=`<span>✓ ${escH(region.banner)}</span><button class="banner-clear-btn">Clear</button>`;
+      clearRow.querySelector('.banner-clear-btn').addEventListener('click',()=>{
+        region.banner='';
+        updateTrigger();
+        panel.remove();
+        panel=null;
+      });
+      panel.appendChild(clearRow);
+    }
+
+    wrap.appendChild(panel);
+    setTimeout(()=>searchInput.focus(),50);
+  }
+
+  trigger.addEventListener('click',e=>{
+    e.stopPropagation();
+    if (panel) { panel.remove(); panel=null; }
+    else openDropdown();
+  });
+
+  return wrap;
+}
+
+function buildPushBlock(region, slot, icon, label, cls) {
+  const block = document.createElement('div');
+  block.className=`push-block ${cls}`;
+
+  const hdr = document.createElement('div');
+  hdr.className='push-block-header';
+
+  const title = document.createElement('div');
+  title.className='push-block-title';
+  title.innerHTML=`<span>${icon}</span>${label}`;
+
+  const copyFromWrap = document.createElement('div');
+  copyFromWrap.className='relative';
+  const copyFromBtn = document.createElement('button');
+  copyFromBtn.className='btn-copy-from';
+  copyFromBtn.innerHTML='⬇ Copy from region';
+  copyFromBtn.addEventListener('click', e=>{
+    e.stopPropagation();
+    // close any existing
+    const existing = copyFromWrap.querySelector('.copy-from-panel');
+    if (existing) { existing.remove(); return; }
+
+    const sources = regions.filter(r=>r.id!==region.id&&!r.sameAsDefault).filter(r=>{
+      const push = r[slot];
+      return push.title||push.message||push.brief;
+    });
+
+    const pan = document.createElement('div');
+    pan.className='copy-from-panel';
+    const cfHdr = document.createElement('div');
+    cfHdr.className='copy-from-header';
+    cfHdr.textContent=`Copy ${label} from…`;
+    pan.appendChild(cfHdr);
+
+    if (sources.length===0) {
+      const empty = document.createElement('div');
+      empty.className='copy-from-empty';
+      empty.textContent='No other regions with push data yet';
+      pan.appendChild(empty);
+    } else {
+      sources.forEach(r=>{
+        const src = r[slot];
+        const item = document.createElement('div');
+        item.className='copy-from-item';
+        item.innerHTML=`<div class="copy-from-item-name">${escH(r.name)}</div>${src.title?`<div class="copy-from-item-preview">"${escH(src.title)}"</div>`:src.brief?`<div class="copy-from-item-preview">${escH(src.brief)}</div>`:''}`;
+        item.addEventListener('click',()=>{
+          region[slot] = {...src};
+          pan.remove();
+          // re-render fields
+          renderPushFields(block, region, slot);
+        });
+        pan.appendChild(item);
+      });
+    }
+    copyFromWrap.appendChild(pan);
+  });
+  copyFromWrap.appendChild(copyFromBtn);
+
+  hdr.appendChild(title);
+  hdr.appendChild(copyFromWrap);
+  block.appendChild(hdr);
+
+  const fieldsDiv = document.createElement('div');
+  block.appendChild(fieldsDiv);
+  renderPushFields(block, region, slot);
+
+  return block;
+}
+
+function renderPushFields(block, region, slot) {
+  const existing = block.querySelector('.push-fields');
+  if (existing) existing.remove();
+
+  const push = region[slot];
+  const fieldsDiv = document.createElement('div');
+  fieldsDiv.className='push-fields';
+
+  const FIELDS=[
+    {key:'brief',label:'Brief',mono:false,full:false,rows:1},
+    {key:'title',label:'Title',mono:false,full:false,rows:1},
+    {key:'subtitle',label:'Subtitle',mono:false,full:false,rows:1},
+    {key:'message',label:'Message',mono:false,full:true,rows:2},
+    {key:'link',label:'Link',mono:true,full:true,rows:1},
+    {key:'imageCode',label:'Image Code',mono:true,full:false,rows:1},
+  ];
+
+  FIELDS.forEach(f=>{
+    const fieldDiv = document.createElement('div');
+    fieldDiv.className=`push-field${f.full?' full':''}${f.mono?' mono':''}`;
+    const lbl = document.createElement('label');
+    lbl.textContent=f.label;
+    fieldDiv.appendChild(lbl);
+    let inp;
+    if (f.rows>1) {
+      inp = document.createElement('textarea');
+      inp.rows=f.rows;
+    } else {
+      inp = document.createElement('input');
+      inp.type='text';
+    }
+    inp.value=push[f.key]||'';
+    inp.placeholder=`${f.label}…`;
+    inp.addEventListener('input',e=>{ region[slot][f.key]=e.target.value; });
+    fieldDiv.appendChild(inp);
+    fieldsDiv.appendChild(fieldDiv);
+  });
+
+  block.appendChild(fieldsDiv);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CRM VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderCRM() {
+  const date = document.getElementById('date-input').value;
+  document.getElementById('crm-date-label').textContent =
+    (date?fmtDate(date):'No date selected') + ' — Copy IDs into Hero Planner';
+
+  const content = document.getElementById('crm-content');
+  content.innerHTML='';
+
+  if (regions.length===0) {
+    content.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No regions yet</div><div class="empty-desc">Add regions in the Builder tab first</div></div>';
+    return;
+  }
+
+  regions.forEach((region,ri)=>{
+    const eff = getEffectiveRegion(region);
+    const heroes = eff.heroes.filter(h=>h.id||h.label);
+    const banner = getAllBanners().find(b=>b.key===eff.banner);
+
+    const card = document.createElement('div');
+    card.className='crm-region';
+
+    const hdr = document.createElement('div');
+    hdr.className=`crm-region-header${ri===0?' default-hdr':''}`;
+    hdr.innerHTML=`<span style="font-weight:900;font-size:13px;color:${ri===0?'#e0e7ff':'#0f172a'}">${escH(region.name)}</span>${region.sameAsDefault?'<span style="font-size:10px;color:#94a3b8;font-style:italic;">→ inherits Default</span>':''}`;
+    card.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.className='crm-region-body';
+
+    // Heroes
+    body.innerHTML+=`<div class="crm-sub-label">Offer IDs (Hero Planner)</div>`;
+    const chips = document.createElement('div');
+    chips.className='hero-chips';
+    if (heroes.length===0) chips.innerHTML='<span style="color:#cbd5e1;font-size:12px;">No heroes added</span>';
+    heroes.forEach((h,i)=>{
+      const idVal = h.id||h.label;
+      const chip = document.createElement('div');
+      chip.className='hero-chip';
+      chip.innerHTML=`<div class="hero-chip-num">HERO ${i+1}</div><div class="hero-chip-id"><span class="mono" style="font-size:${h.type==='hotel'?13:11}px">${escH(idVal)}</span></div><div class="hero-chip-type">${escH(h.type)}</div>`;
+      const copyBtn = document.createElement('button');
+      copyBtn.className='copy-btn';
+      copyBtn.textContent='⧉';
+      copyBtn.addEventListener('click',()=>copyText(idVal,copyBtn));
+      chip.querySelector('.hero-chip-id').appendChild(copyBtn);
+      chips.appendChild(chip);
+    });
+    body.appendChild(chips);
+
+    // Banner
+    const bannerRow = document.createElement('div');
+    bannerRow.className='banner-row';
+    bannerRow.innerHTML=`<span style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Banner:</span>`;
+    if (banner) {
+      const bSpan = document.createElement('span');
+      bSpan.className='mono';
+      bSpan.style.fontSize='11.5px';
+      bSpan.textContent=banner.key;
+      const cb = document.createElement('button');
+      cb.className='copy-btn'; cb.textContent='⧉';
+      cb.addEventListener('click',()=>copyText(banner.key,cb));
+      bannerRow.appendChild(bSpan);
+      bannerRow.appendChild(cb);
+    } else {
+      bannerRow.innerHTML+='<span style="color:#cbd5e1;font-size:11px;">none selected</span>';
+    }
+    body.appendChild(bannerRow);
+
+    // Push table
+    body.innerHTML+=`<div class="crm-sub-label" style="margin-top:8px;">Push Notifications</div>`;
+    const tableWrap = document.createElement('div');
+    tableWrap.style.cssText='overflow-x:auto;border-radius:6px;border:1px solid #e2e8f0;';
+    const table = document.createElement('table');
+    table.className='push-table';
+    table.innerHTML=`<thead><tr>${['','Brief','Title','Subtitle','Message','Link','Image Code'].map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+    const tbody = document.createElement('tbody');
+
+    function makePushRow(rowLabel, push) {
+      const tr = document.createElement('tr');
+      tr.innerHTML=`<td class="row-label">${rowLabel}</td>`;
+      ['brief','title','subtitle','message','link','imageCode'].forEach((k,i)=>{
+        const td = document.createElement('td');
+        if (i>=4) td.style.fontFamily="'JetBrains Mono','Courier New',monospace";
+        if (i>=4) td.style.fontSize='10.5px';
+        if (i===3) td.style.maxWidth='200px';
+        else td.style.maxWidth='160px';
+        const val = push[k]||'';
+        const inner = document.createElement('div');
+        inner.style.cssText='display:flex;align-items:flex-start;gap:2px;';
+        const textSpan = document.createElement('span');
+        textSpan.style.cssText=`flex:1;overflow:hidden;text-overflow:ellipsis;white-space:${i===3?'normal':'nowrap'};`;
+        textSpan.textContent=val||'';
+        if (!val) textSpan.style.color='#cbd5e1';
+        if (!val) textSpan.textContent='—';
+        inner.appendChild(textSpan);
+        if (val) {
+          const cb = document.createElement('button');
+          cb.className='copy-btn'; cb.textContent='⧉';
+          cb.addEventListener('click',()=>copyText(val,cb));
+          inner.appendChild(cb);
+        }
+        td.appendChild(inner);
+        tr.appendChild(td);
+      });
+      return tr;
+    }
+
+    tbody.appendChild(makePushRow('☀️ Daytime', eff.daytime));
+    tbody.appendChild(makePushRow('🌙 Nighttime', eff.nighttime));
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    body.appendChild(tableWrap);
+
+    if (eff.notes) body.innerHTML+=`<div style="margin-top:8px;font-size:11px;color:#64748b;font-style:italic;">Notes: ${escH(eff.notes)}</div>`;
+    card.appendChild(body);
+    content.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HISTORY VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderHistory(searchQ) {
+  const content = document.getElementById('history-content');
+  content.innerHTML='';
+  document.getElementById('history-count').textContent=`${sendHistory.length} date${sendHistory.length!==1?'s':''} logged this session`;
+
+  if (sendHistory.length===0) {
+    content.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No sends recorded yet</div><div class="empty-desc">Fill in heroes in the <strong>Builder</strong> tab,<br/>then click <strong>✓ Record Send</strong> to log a send here.</div></div>`;
+    return;
+  }
+
+  const q = (searchQ||'').toLowerCase();
+  let list = sendHistory;
+  if (q) {
+    list = sendHistory.filter(e=>{
+      return e.date.includes(q) || e.regions.some(r=>
+        r.name.toLowerCase().includes(q) || r.heroes.some(h=>(h.label||'').toLowerCase().includes(q)||(h.id||'').toLowerCase().includes(q))
+      );
+    });
+  }
+
+  if (list.length===0) {
+    content.innerHTML=`<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">No results for "${escH(q)}"</div>`;
+    return;
+  }
+
+  list.forEach(entry=>{
+    const d = new Date(entry.date+'T00:00:00');
+    const allHeroes = entry.regions.flatMap(r=>r.heroes.filter(h=>h.label));
+    const uniqueLabels = [...new Set(allHeroes.map(h=>h.label))];
+
+    const card = document.createElement('div');
+    card.className='history-entry';
+
+    const row = document.createElement('div');
+    row.className='history-row';
+
+    const left = document.createElement('div');
+    left.style.cssText='display:flex;align-items:center;gap:14px;';
+
+    const datePill = document.createElement('div');
+    datePill.className='date-pill';
+    datePill.innerHTML=`<div class="date-pill-day">${d.toLocaleDateString('en-AU',{weekday:'short'})}</div><div class="date-pill-num">${d.getDate()}</div><div class="date-pill-mon">${d.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})}</div>`;
+
+    const meta = document.createElement('div');
+    const dateStr = document.createElement('div');
+    dateStr.style.cssText='font-size:13px;font-weight:800;color:#0f172a;';
+    dateStr.textContent=fmtDate(entry.date);
+    const chips = document.createElement('div');
+    chips.style.cssText='display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;';
+    uniqueLabels.slice(0,5).forEach(l=>{
+      const chip=document.createElement('span');
+      chip.className='deal-chip';
+      chip.textContent=l.replace(/[{}]/g,'').slice(0,26);
+      chips.appendChild(chip);
+    });
+    if (uniqueLabels.length>5) {
+      const more=document.createElement('span');
+      more.style.cssText='font-size:10px;color:#94a3b8;';
+      more.textContent=`+${uniqueLabels.length-5} more`;
+      chips.appendChild(more);
+    }
+    meta.appendChild(dateStr);
+    meta.appendChild(chips);
+
+    left.appendChild(datePill);
+    left.appendChild(meta);
+
+    const right = document.createElement('div');
+    right.style.cssText='display:flex;align-items:center;gap:10px;';
+    const summary = document.createElement('span');
+    summary.style.cssText='font-size:10.5px;color:#64748b;font-weight:600;';
+    summary.textContent=`${entry.regions.length} region${entry.regions.length!==1?'s':''} · ${uniqueLabels.length} deal${uniqueLabels.length!==1?'s':''}`;
+    const chevron = document.createElement('span');
+    chevron.style.cssText='color:#94a3b8;font-size:14px;';
+    chevron.textContent='▼';
+    right.appendChild(summary);
+    right.appendChild(chevron);
+
+    row.appendChild(left);
+    row.appendChild(right);
+
+    const expanded = document.createElement('div');
+    expanded.className='history-expanded';
+    expanded.style.display='none';
+
+    entry.regions.forEach((region,ri)=>{
+      const heroes = region.heroes.filter(h=>h.label);
+      const banner = getAllBanners().find(b=>b.key===region.banner);
+      const regionDiv = document.createElement('div');
+      regionDiv.className='history-region';
+
+      const tagRow = document.createElement('div');
+      tagRow.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;';
+      const regTag = document.createElement('span');
+      regTag.className='region-tag';
+      regTag.style.background=ri===0?'#312e81':'#64748b';
+      regTag.textContent=region.name;
+      tagRow.appendChild(regTag);
+      if (region.sameAsDefault) tagRow.innerHTML+=`<span style="font-size:10px;color:#94a3b8;font-style:italic;">inherits Default</span>`;
+      if (banner) tagRow.innerHTML+=`<span style="font-size:10px;color:#64748b;font-family:'JetBrains Mono',monospace;background:#f8fafc;padding:1px 6px;border-radius:4px;">🖼 ${escH(banner.key)}</span>`;
+      if (region.notes) tagRow.innerHTML+=`<span style="font-size:10px;color:#94a3b8;font-style:italic;">"${escH(region.notes)}"</span>`;
+      regionDiv.appendChild(tagRow);
+
+      const heroChips = document.createElement('div');
+      heroChips.style.cssText='display:flex;flex-wrap:wrap;gap:6px;';
+      if (heroes.length===0) heroChips.innerHTML='<span style="font-size:11.5px;color:#cbd5e1;">No heroes</span>';
+      heroes.forEach((h,hi)=>{
+        const chip=document.createElement('div');
+        chip.style.cssText='background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;';
+        chip.innerHTML=`<div style="font-size:9px;font-weight:800;color:#94a3b8;margin-bottom:1px;">H${hi+1}</div><div style="font-size:11.5px;font-weight:600;color:#1e293b;font-family:'JetBrains Mono',monospace;">${escH(h.label)}</div>${h.id&&h.type==='hotel'?`<div style="font-size:9.5px;color:#94a3b8;font-family:'JetBrains Mono',monospace;">${escH(h.id)}</div>`:''}`;
+        heroChips.appendChild(chip);
+      });
+      regionDiv.appendChild(heroChips);
+      expanded.appendChild(regionDiv);
+    });
+
+    let isOpen=false;
+    row.addEventListener('click',()=>{
+      isOpen=!isOpen;
+      row.classList.toggle('open',isOpen);
+      expanded.style.display=isOpen?'block':'none';
+      chevron.textContent=isOpen?'▲':'▼';
+    });
+
+    card.appendChild(row);
+    card.appendChild(expanded);
+    content.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ESCAPE HTML
+// ═══════════════════════════════════════════════════════════════════════════
+function escH(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+document.getElementById('date-input').value = isoToday();
+
+// Start with a Default region
+regions.push(emptyRegion('Default'));
+renderRegions();
+</script>
+</body>
+</html>
