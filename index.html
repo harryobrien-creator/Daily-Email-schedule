@@ -202,6 +202,7 @@
         🕒 History<span class="badge" id="history-badge" style="display:none">0</span>
       </button>
     </div>
+    <button onclick="shareBuild()" style="background:#f59e0b;color:#0f172a;border:none;border-radius:7px;padding:5px 14px;font-weight:800;font-size:11.5px;letter-spacing:.3px;cursor:pointer;">🔗 Share Build</button>
     <button class="btn-record" id="record-btn" onclick="recordSend()">✓ Record Send</button>
   </div>
 </div>
@@ -377,24 +378,131 @@ let openDropdowns = new Set(); // track open banner dropdowns
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════
-const CC = {au:"AU",nz:"NZ",sg:"SG",us:"US",gb:"UK",hk:"HK",in:"IN",za:"SA",ae:"UAE",th:"TH",my:"MY",ph:"PH",id:"ID",jp:"JP",ca:"CA",fr:"FR",de:"DE",it:"IT",es:"ES",nl:"NL"};
+// ── Destination keyword → country code
+// The URL market path (e.g. /au/) is ALWAYS the sending market, not the destination.
+// We detect destination country from keywords in the property slug instead.
+const DEST_KEYWORDS = [
+  // Indonesia / Bali
+  {words:['bali','indonesia','seminyak','ubud','nusa-dua','nusadua','jimbaran','canggu','kuta','lombok','komodo','raja-ampat','bintan'],cc:'ID'},
+  // Thailand
+  {words:['phuket','thailand','bangkok','samui','koh','chiang','hua-hin','krabi','pattaya','thai'],cc:'TH'},
+  // Maldives
+  {words:['maldives','maldivian','atoll','male'],cc:'MV'},
+  // Fiji
+  {words:['fiji','fijian','nadi','suva','viti','yasawa','mamanuca'],cc:'FJ'},
+  // Japan
+  {words:['japan','japanese','tokyo','kyoto','osaka','hokkaido','okinawa','hiroshima','shinkansen'],cc:'JP'},
+  // Singapore
+  {words:['singapore'],cc:'SG'},
+  // Malaysia
+  {words:['malaysia','kuala-lumpur','penang','langkawi','sabah','borneo','kl-'],cc:'MY'},
+  // Vietnam
+  {words:['vietnam','vietnamese','ho-chi-minh','hanoi','da-nang','hoi-an','phu-quoc','nha-trang','ha-long'],cc:'VN'},
+  // Sri Lanka
+  {words:['sri-lanka','colombo','kandy','galle'],cc:'LK'},
+  // India
+  {words:['india','indian','goa','rajasthan','kerala','mumbai','delhi','jaipur','agra','taj'],cc:'IN'},
+  // UAE / Dubai
+  {words:['dubai','abu-dhabi','uae','emirates'],cc:'AE'},
+  // Oman
+  {words:['oman','muscat','salalah'],cc:'OM'},
+  // South Africa
+  {words:['south-africa','cape-town','johannesburg','safari','kruger','safari-lodge'],cc:'ZA'},
+  // Kenya / Tanzania (safari)
+  {words:['kenya','nairobi','masai-mara','tanzania','serengeti','zanzibar'],cc:'KE'},
+  // Morocco
+  {words:['morocco','marrakech','casablanca'],cc:'MA'},
+  // Greece
+  {words:['greece','greek','santorini','mykonos','athens','crete','rhodes'],cc:'GR'},
+  // Italy
+  {words:['italy','italian','rome','venice','florence','amalfi','sicily','milan'],cc:'IT'},
+  // France
+  {words:['france','french','paris','provence','côte','riviera'],cc:'FR'},
+  // Spain
+  {words:['spain','spanish','barcelona','madrid','ibiza','mallorca'],cc:'ES'},
+  // Portugal
+  {words:['portugal','lisbon','algarve','porto'],cc:'PT'},
+  // UK
+  {words:['london','england','scotland','ireland','uk-'],cc:'UK'},
+  // USA
+  {words:['hawaii','waikiki','las-vegas','new-york','los-angeles','miami','cancun','usa'],cc:'US'},
+  // Canada
+  {words:['canada','canadian','vancouver','toronto','banff','whistler'],cc:'CA'},
+  // New Zealand
+  {words:['new-zealand','queenstown','auckland','rotorua','fiordland'],cc:'NZ'},
+  // Cook Islands / Pacific
+  {words:['cook-islands','rarotonga','aitutaki','tahiti','bora-bora','french-polynesia','vanuatu','samoa','tonga'],cc:'CK'},
+  // Philippines
+  {words:['philippines','boracay','palawan','cebu','manila','siargao'],cc:'PH'},
+  // Cambodia
+  {words:['cambodia','siem-reap','angkor','phnom-penh'],cc:'KH'},
+  // Australia — states/territories as fallback destination codes
+  {words:['gold-coast','sunshine-coast','noosa','whitsundays','cairns','port-douglas','hamilton-island','great-barrier-reef','brisbane','townsville','queensland'],cc:'QLD'},
+  {words:['sydney','hunter-valley','blue-mountains','jervis-bay','port-stephens','byron-bay','nsw'],cc:'NSW'},
+  {words:['melbourne','yarra-valley','mornington','great-ocean','grampians','victoria','vic-'],cc:'VIC'},
+  {words:['perth','margaret-river','broome','ningaloo','kimberley','wa-'],cc:'WA'},
+  {words:['adelaide','barossa','kangaroo-island','flinders'],cc:'SA'},
+  {words:['darwin','uluru','kakadu','alice-springs','nt-'],cc:'NT'},
+  {words:['hobart','freycinet','tasmania','tasman'],cc:'TAS'},
+  {words:['canberra','act-'],cc:'ACT'},
+];
+
+function destCountryFromSlug(slug) {
+  const s = slug.toLowerCase();
+  for (const {words, cc} of DEST_KEYWORDS) {
+    if (words.some(w => s.includes(w))) return cc;
+  }
+  return 'AU'; // default fallback
+}
+
+function slugToName(slug) {
+  // Remove state/country noise words from the end of slugs
+  const stopWords = new Set([
+    'australia','australian','victoria','queensland','new','south','wales',
+    'western','northern','territory','act','tasmania','tasmanian',
+    'indonesia','indonesia','thailand','maldives','maldivian','fiji','fijian',
+    'japan','japanese','singapore','malaysia','vietnam','vietnamese',
+    'philippines','cambodia','india','indian','kenya','tanzania','morocco',
+    'greece','greek','italy','italian','france','french','spain','spanish',
+    'portugal','usa','canada','zealand','islands','island',
+  ]);
+  return slug.split('-')
+    .filter(w => !stopWords.has(w.toLowerCase()))
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+    .replace(/\b(And|Or|The|In|At|Of|By|A)\b/g, m => m.toLowerCase())
+    .trim();
+}
 
 function parseLeUrl(raw) {
   const url = (raw||'').trim();
   if (!url.includes('luxuryescapes.com')) return null;
+
+  // TOUR: /tour/tour-uuid/slug
   const tm = url.match(/\/tour\/(tour-[a-f0-9-]+)/i);
   if (tm) return {type:'tour', id:tm[1], label:`{TOUR} ${tm[1]}`};
+
+  // CRUISE: /cruises/uuid
   const cm = url.match(/\/cruises\/([a-f0-9-]{36})/i);
   if (cm) return {type:'cruise', id:cm[1], label:`{CRUISE} ${cm[1]}`};
-  const hm = url.match(/luxuryescapes\.com\/([a-z]{2})\/offer\/([^/?#]+)\/([A-Za-z0-9]+)/i);
-  if (hm) {
-    const cc = CC[hm[1].toLowerCase()] || hm[1].toUpperCase();
-    const stopWords = ['victoria','australia','new','south','wales','western','northern','territory','queensland'];
-    const name = hm[2].split('-').filter(w=>!stopWords.includes(w.toLowerCase()))
-      .map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ')
-      .replace(/\b(And|Or|The|In|At|Of|By|A)\b/g,m=>m.toLowerCase());
-    return {type:'hotel', id:hm[3], country:cc, label:`{${cc}} ${name}`};
+
+  // PARTNER: /partner/property-slug/uuid  (e.g. Sheraton Gold Coast)
+  const pm = url.match(/\/partner\/([^/?#]+)\/([a-f0-9-]{36})/i);
+  if (pm) {
+    const cc = destCountryFromSlug(pm[1]);
+    const name = slugToName(pm[1]);
+    return {type:'hotel', id:pm[2], country:cc, label:`{${cc}} ${name}`};
   }
+
+  // HOTEL OFFER: /MARKET/offer/property-slug/SALESFORCE_ID
+  const hm = url.match(/luxuryescapes\.com\/[a-z]{2}\/offer\/([^/?#]+)\/([A-Za-z0-9]+)/i);
+  if (hm) {
+    // Country comes from the SLUG (destination), not the market in the URL
+    const cc = destCountryFromSlug(hm[1]);
+    const name = slugToName(hm[1]);
+    return {type:'hotel', id:hm[2], country:cc, label:`{${cc}} ${name}`};
+  }
+
   return null;
 }
 
@@ -554,9 +662,14 @@ function importBanners(input) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RECORD SEND
+// RECORD SEND (base — overridden at bottom with localStorage + toast)
 // ═══════════════════════════════════════════════════════════════════════════
+function _recordSendBase() {
+  // This is intentionally left as a no-op base;
+  // the full implementation is window.recordSend defined at init time.
+}
 function recordSend() {
+  // Will be replaced by window.recordSend after init — this is a fallback stub.
   const date = document.getElementById('date-input').value || isoToday();
   const snapshot = {
     id: uid(), date, recordedAt: new Date().toISOString(),
@@ -568,12 +681,12 @@ function recordSend() {
     const eff = getEffectiveRegion(r);
     eff.heroes.forEach(h=>{ if(h.label) recordFresh(h.label, date); });
   });
-  // Update badge
   const badge = document.getElementById('history-badge');
   badge.style.display='flex';
   badge.textContent = sendHistory.length;
-  document.getElementById('history-count').textContent = `${sendHistory.length} date${sendHistory.length!==1?'s':''} logged this session`;
-  alert(`✓ Send recorded for ${fmtDate(date)}`);
+  document.getElementById('history-count').textContent = `${sendHistory.length} date${sendHistory.length!==1?'s':''} logged`;
+  saveToLocalStorage();
+  showToast(`✓ Send recorded for ${fmtDate(date)}`);
   switchView('history');
 }
 
@@ -1264,13 +1377,145 @@ function escH(s) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOCAL STORAGE — persists history + freshStore across refreshes (same browser)
+// ═══════════════════════════════════════════════════════════════════════════
+const LS_HISTORY  = 'le_scheduler_history';
+const LS_FRESH    = 'le_scheduler_fresh';
+
+function saveToLocalStorage() {
+  try {
+    localStorage.setItem(LS_HISTORY, JSON.stringify(sendHistory));
+    localStorage.setItem(LS_FRESH,   JSON.stringify(freshStore));
+  } catch(e) { /* storage full or unavailable */ }
+}
+
+function loadFromLocalStorage() {
+  try {
+    const h = localStorage.getItem(LS_HISTORY);
+    const f = localStorage.getItem(LS_FRESH);
+    if (h) { const parsed = JSON.parse(h); if (Array.isArray(parsed)) sendHistory = parsed; }
+    if (f) { const parsed = JSON.parse(f);  if (typeof parsed === 'object') Object.assign(freshStore, parsed); }
+  } catch(e) { /* ignore corrupt data */ }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// URL SHARING — encode full build state into a URL hash for CRM handoff
+// ═══════════════════════════════════════════════════════════════════════════
+function encodeBuildToURL() {
+  const date = document.getElementById('date-input').value || isoToday();
+  const payload = {
+    date,
+    regions: regions.map(r => ({
+      id: r.id, name: r.name, sameAsDefault: r.sameAsDefault,
+      banner: r.banner, notes: r.notes,
+      heroes: r.heroes.map(h => ({ url: h.url, label: h.label, id: h.id, type: h.type })),
+      daytime:   { ...r.daytime },
+      nighttime: { ...r.nighttime },
+    })),
+    view: 'crm'  // recipient always lands on CRM view
+  };
+  try {
+    const json    = JSON.stringify(payload);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+    return `${location.href.split('#')[0]}#build=${encoded}`;
+  } catch(e) {
+    return null;
+  }
+}
+
+function shareBuild() {
+  const url = encodeBuildToURL();
+  if (!url) { alert('Nothing to share yet — add some heroes first.'); return; }
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('✓ CRM link copied to clipboard! Paste it in Slack or your Jira ticket.');
+  }).catch(() => {
+    // Fallback: show the URL in a prompt so they can copy manually
+    prompt('Copy this link and send to your CRM team:', url);
+  });
+}
+
+function decodeBuildFromURL() {
+  const hash = location.hash;
+  if (!hash.startsWith('#build=')) return false;
+  try {
+    const encoded = hash.slice(7);
+    const json    = decodeURIComponent(escape(atob(encoded)));
+    const payload = JSON.parse(json);
+    if (!payload.regions) return false;
+
+    // Restore state
+    document.getElementById('date-input').value = payload.date || isoToday();
+    regions = payload.regions.map(r => ({
+      ...emptyRegion(r.name),
+      ...r,
+      heroes:    (r.heroes || []).map(h => ({ ...emptyHero(), ...h })),
+      daytime:   { ...emptyPush(), ...(r.daytime   || {}) },
+      nighttime: { ...emptyPush(), ...(r.nighttime || {}) },
+    }));
+
+    return payload.view || 'crm'; // default: open in CRM view for recipient
+  } catch(e) {
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TOAST NOTIFICATION
+// ═══════════════════════════════════════════════════════════════════════════
+function showToast(msg, duration=3500) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+      background:#0f172a;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;
+      font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.3);z-index:9999;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;
+      white-space:nowrap;max-width:90vw;text-align:center;
+    `;
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.transform = 'translateX(-50%) translateY(80px)';
+    t.style.opacity   = '0';
+  }, duration);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════
-document.getElementById('date-input').value = isoToday();
 
-// Start with a Default region
-regions.push(emptyRegion('Default'));
-renderRegions();
+// 1. Load persisted history from this browser
+loadFromLocalStorage();
+
+// Update history badge if we have saved history
+if (sendHistory.length > 0) {
+  const badge = document.getElementById('history-badge');
+  badge.style.display = 'flex';
+  badge.textContent = sendHistory.length;
+  document.getElementById('history-count').textContent =
+    `${sendHistory.length} date${sendHistory.length!==1?'s':''} logged`;
+}
+
+// 2. Check if URL contains a shared build (CRM handoff link)
+const sharedView = decodeBuildFromURL();
+if (sharedView) {
+  // Someone clicked a Share Build link — load the build and show correct view
+  renderRegions();
+  switchView(typeof sharedView === 'string' ? sharedView : 'crm');
+  showToast('📋 Build loaded — you\'re viewing the CRM handoff');
+} else {
+  // Normal load — start fresh with Default region
+  document.getElementById('date-input').value = isoToday();
+  if (regions.length === 0) regions.push(emptyRegion('Default'));
+  renderRegions();
+}
+
 </script>
 </body>
 </html>
