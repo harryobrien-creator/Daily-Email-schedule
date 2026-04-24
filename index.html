@@ -712,9 +712,11 @@ function copyText(text, btn) {
 // ═══════════════════════════════════════════════════════════════════════════
 function switchView(view) {
   currentView = view;
-  ['builder','crm','history'].forEach(v=>{
-    document.getElementById(`view-${v}`).style.display = v===view?'block':'none';
-    document.querySelector(`[data-view="${v}"]`).classList.toggle('active', v===view);
+  ['builder','crm','overview'].forEach(v=>{
+    const el = document.getElementById(`view-${v}`);
+    if (el) el.style.display = v===view?'block':'none';
+    const btn = document.querySelector(`[data-view="${v}"]`);
+    if (btn) btn.classList.toggle('active', v===view);
   });
   document.getElementById('record-btn').style.display = view==='builder'?'':'none';
   if (view==='crm') renderCRM();
@@ -1524,6 +1526,8 @@ function renderOverview(searchQ) {
     const plan = futurePlans[e.date];
     return e.date.includes(q)
       || (plan?.hero1||'').toLowerCase().includes(q)
+      || (plan?.hero2||'').toLowerCase().includes(q)
+      || (plan?.hero3||'').toLowerCase().includes(q)
       || (e.regions||[]).some(r=>
           r.name.toLowerCase().includes(q) ||
           (r.heroes||[]).some(h=>(h.label||'').toLowerCase().includes(q))
@@ -1549,13 +1553,14 @@ function renderSpreadsheet(container, entries) {
 
   // Header
   table.innerHTML=`<thead><tr>
-    <th style="width:90px">Date</th>
-    <th style="width:70px">Day</th>
-    <th>Hero 1</th>
-    <th>Regions</th>
-    <th>Heroes 2–6</th>
-    <th style="width:130px">Banner</th>
-    <th style="width:60px">Notes</th>
+    <th style="width:80px">Date</th>
+    <th style="width:55px">Day</th>
+    <th style="min-width:160px">Hero 1</th>
+    <th style="min-width:160px">Hero 2</th>
+    <th style="min-width:160px">Hero 3</th>
+    <th style="width:100px">Regions</th>
+    <th style="min-width:120px">Heroes 4–6</th>
+    <th style="width:110px">Banner</th>
   </tr></thead>`;
 
   const tbody = document.createElement('tbody');
@@ -1630,29 +1635,80 @@ function renderSpreadsheet(container, entries) {
       tdRegions.innerHTML='<span style="color:#cbd5e1;font-size:10px;">—</span>';
     }
 
-    // Other heroes cell
+    // Hero 2 cell
+    const hero2 = defRegion?.heroes?.[1] || null;
+    const hero2Label = hero2?.label || plan.hero2 || '';
+    const tdH2 = document.createElement('td');
+    if (isFuture) {
+      const inp2 = document.createElement('input');
+      inp2.className='hero1-cell future-edit';
+      inp2.placeholder='Expected Hero 2…';
+      inp2.value = plan.hero2 || '';
+      inp2.addEventListener('input', e=>{
+        if (!futurePlans[entry.date]) futurePlans[entry.date]={};
+        futurePlans[entry.date].hero2 = e.target.value;
+        saveFuture();
+      });
+      tdH2.appendChild(inp2);
+    } else {
+      tdH2.className='hero1-cell';
+      const cc2 = hero2Label.match(/^\{([^}]+)\}/)?.[1]||'';
+      if (cc2) {
+        const t = document.createElement('span');
+        t.style.cssText='font-size:9px;font-weight:800;background:#f1f5f9;border-radius:3px;padding:0 4px;margin-right:3px;color:#475569;';
+        t.textContent=cc2;
+        tdH2.appendChild(t);
+      }
+      tdH2.appendChild(document.createTextNode(hero2Label.replace(/\{[^}]+\}\s*/,'').slice(0,30)||'—'));
+    }
+
+    // Hero 3 cell
+    const hero3 = defRegion?.heroes?.[2] || null;
+    const hero3Label = hero3?.label || plan.hero3 || '';
+    const tdH3 = document.createElement('td');
+    if (isFuture) {
+      const inp3 = document.createElement('input');
+      inp3.className='hero1-cell future-edit';
+      inp3.placeholder='Expected Hero 3…';
+      inp3.value = plan.hero3 || '';
+      inp3.addEventListener('input', e=>{
+        if (!futurePlans[entry.date]) futurePlans[entry.date]={};
+        futurePlans[entry.date].hero3 = e.target.value;
+        saveFuture();
+      });
+      tdH3.appendChild(inp3);
+    } else {
+      tdH3.className='hero1-cell';
+      const cc3 = hero3Label.match(/^\{([^}]+)\}/)?.[1]||'';
+      if (cc3) {
+        const t = document.createElement('span');
+        t.style.cssText='font-size:9px;font-weight:800;background:#f1f5f9;border-radius:3px;padding:0 4px;margin-right:3px;color:#475569;';
+        t.textContent=cc3;
+        tdH3.appendChild(t);
+      }
+      tdH3.appendChild(document.createTextNode(hero3Label.replace(/\{[^}]+\}\s*/,'').slice(0,30)||'—'));
+    }
+
+    // Heroes 4–6 cell (read-only summary)
     const tdOthers = document.createElement('td');
-    tdOthers.style.cssText='font-size:10.5px;color:#475569;max-width:220px;';
-    tdOthers.textContent = otherHeroes.length > 0 ? otherHeroes.join(' · ') : (isFuture?'':'—');
+    tdOthers.style.cssText='font-size:10px;color:#64748b;';
+    const h46 = (defRegion?.heroes||[]).slice(3).filter(h=>h&&h.label).map(h=>h.label.replace(/\{[^}]+\}\s*/,'').slice(0,18));
+    tdOthers.textContent = h46.length > 0 ? h46.join(' · ') : '—';
 
     // Banner cell
     const tdBanner = document.createElement('td');
-    tdBanner.style.cssText='font-size:10px;color:#64748b;font-family:monospace;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-    tdBanner.textContent = banner ? banner.name.slice(0,22) : (isFuture?'':'—');
+    tdBanner.style.cssText='font-size:10px;color:#64748b;font-family:monospace;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    tdBanner.textContent = banner ? banner.name.slice(0,20) : '—';
     if (banner) tdBanner.title = banner.key;
-
-    // Notes cell
-    const tdNotes = document.createElement('td');
-    tdNotes.style.cssText='font-size:10px;color:#94a3b8;font-style:italic;max-width:100px;';
-    tdNotes.textContent=(defRegion?.notes||'').slice(0,30)||'';
 
     tr.appendChild(tdDate);
     tr.appendChild(tdDow);
     tr.appendChild(tdH1);
+    tr.appendChild(tdH2);
+    tr.appendChild(tdH3);
     tr.appendChild(tdRegions);
     tr.appendChild(tdOthers);
     tr.appendChild(tdBanner);
-    tr.appendChild(tdNotes);
     tbody.appendChild(tr);
   });
 
